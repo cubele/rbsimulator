@@ -1,16 +1,57 @@
 use bevy::prelude::*;
+use crate::consts::*;
+
+#[derive(Resource)]
+struct BGTexture {
+    frame: Handle<Image>,
+    topslot: Handle<Image>,
+    judgeline: Handle<Image>,
+}
+
+fn setup_ui(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
+    let materials = BGTexture {
+        frame: asset_server.load("images\\frame.png"),
+        topslot: asset_server.load("images\\topslot.png"),
+        judgeline: asset_server.load("images\\judgeline.png"),
+    };
+    commands.spawn(SpriteBundle {
+        texture: materials.frame.clone(),
+        transform: Transform::from_translation(Vec3::new(
+            0., 0., 0.
+        )),
+        ..default()
+    });
+    for i in 0..4 {
+        commands.spawn(SpriteBundle {
+            texture: materials.topslot.clone(),
+            transform: Transform::from_translation(Vec3::new(
+                TOP_SLOT_START_X + TOP_SLOT_SPACING * i as f32, TOP_SLOT_Y, 1.
+            )),
+            ..default()
+        });
+    }
+    commands.spawn(SpriteBundle {
+        texture: materials.judgeline.clone(),
+        transform: Transform::from_translation(Vec3::new(
+            0., JUDGE_LINE_POSITION, 1.
+        )),
+        ..default()
+    });
+}
 
 #[derive(Component)]
 struct TimeText;
 
-fn setup_ui(
+fn setup_time_text(
     mut commands: Commands,
     asset_server: ResMut<AssetServer>,
 ) {
     let font = asset_server.load("fonts\\BLOBBYCHUG.ttf");
-    commands
-        // Time text node
-        .spawn(NodeBundle {
+    // Time text node
+    commands.spawn(NodeBundle {
             style: Style {
                 position_type: PositionType::Absolute,
                 position: UiRect {
@@ -56,6 +97,7 @@ impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_startup_system(setup_ui)
+            .add_startup_system(setup_time_text)
             .add_system(update_time_text);
     }
 }

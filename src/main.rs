@@ -6,6 +6,7 @@ mod notes;
 mod consts;
 mod types;
 mod ui;
+mod utils;
 
 use consts::*;
 

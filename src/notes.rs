@@ -5,6 +5,7 @@ use crate::consts::*;
 #[derive(Resource)]
 struct ObjTexture {
     red_obj: Handle<Image>,
+    top_obj: Handle<Image>,
 }
 
 fn load_object_texture(
@@ -13,6 +14,7 @@ fn load_object_texture(
 ) {
     commands.insert_resource(ObjTexture{
         red_obj: asset_server.load("images\\redobject.png"),
+        top_obj: asset_server.load("images\\topobject.png"),
     });
 }
 
@@ -32,10 +34,14 @@ fn spawn_objects(
         // List is ordered, so we can just check until an item fails
         // Check if arrow should be spawned at any point between last frame and this frame
         if object.spawn_time < secs {
+            info!("Spawning object at {}", secs);
+            info!("Object spawn time: {}", object.spawn_time);
             remove_counter += 1;
 
             let transform =
-                Transform::from_translation(Vec3::new(0., SPAWN_POSITION, 1.));
+                Transform::from_translation(Vec3::new(
+                    object.spawn_x, SPAWN_POSITION, OBJECT_Z
+                ));
             commands.spawn(SpriteBundle {
                 texture: materials.red_obj.clone(),
                 transform,
@@ -46,7 +52,6 @@ fn spawn_objects(
             break;
         }
     }
-
     for _ in 0..remove_counter {
         fumen.objects.remove(0);
     }
