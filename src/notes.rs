@@ -16,12 +16,8 @@ fn load_object_texture(
     });
 }
 
-/// Keeps track of when to Spawn a new arrow
-#[derive(Resource)]
-struct SpawnTimer(Timer);
 use crate::types::{Object, Fumen};
 
-/// Spawns arrows
 fn spawn_objects(
     mut commands: Commands,
     mut fumen: ResMut<Fumen>,
@@ -56,10 +52,13 @@ fn spawn_objects(
     }
 }
 
-/// Moves the arrows forward
-fn move_objects(time: Res<Time>, mut query: Query<(&mut Transform, &Object)>) {
-    for (mut transform, _arrow) in query.iter_mut() {
+fn move_objects(time: Res<Time>, mut query: Query<(&mut Transform, &mut Visibility, &Object)>) {
+    for (mut transform, mut visibility, _object) in query.iter_mut() {
         transform.translation.y -= time.delta_seconds() * BASE_SPEED;
+        // passed the judgement line
+        if transform.translation.y < TARGET_POSITION {
+            visibility.is_visible = false;
+        }
     }
 }
 
@@ -68,7 +67,6 @@ impl Plugin for ObjectsPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_startup_system(load_object_texture)
-            .insert_resource(SpawnTimer(Timer::from_seconds(1.0, TimerMode::Repeating)))
             .add_system(spawn_objects)
             .add_system(move_objects);
     }

@@ -1,14 +1,19 @@
-/// Speed at which a Slow arrow moves
+// UI
+pub const WINDOW_HEIGHT: f32 = 1080.;
+pub const WINDOW_WIDTH: f32 = 720.;
+/// where the game is played
+pub const INNER_WINDOW_HEIGHT: f32 = 1000.;
+pub const INNER_WINDOW_WIDTH: f32 = 640.;
+pub const INNER_WINDOW_X_PAD: f32 = (WINDOW_WIDTH - INNER_WINDOW_WIDTH) / 2.;
+pub const INNER_WINDOW_Y_PAD: f32 = (WINDOW_HEIGHT - INNER_WINDOW_HEIGHT) / 2.;
+/// real coordinates
+/// 0,0 is the center of the screen
+pub const INNER_WINDOW_X_MIN: f32 = -INNER_WINDOW_WIDTH / 2.;
+pub const INNER_WINDOW_X_MAX: f32 = INNER_WINDOW_WIDTH / 2.;
+pub const INNER_WINDOW_Y_MIN: f32 = -INNER_WINDOW_HEIGHT / 2.;
+pub const INNER_WINDOW_Y_MAX: f32 = INNER_WINDOW_HEIGHT / 2.;
+
+// notes
 pub const BASE_SPEED: f32 = 200.;
-
-/// Y coordinate value at which arrows spawn, should be out of screen
-pub const SPAWN_POSITION: f32 = 400.;
-
-/// Y coordinate value where the arrows should be clicked
-pub const TARGET_POSITION: f32 = 200.;
-
-/// Margin of error for clicking an arrow
-pub const THRESHOLD: f32 = 20.;
-
-/// Total distance traveled by an arrow, from spawn to target
-pub const DISTANCE: f32 = TARGET_POSITION - SPAWN_POSITION;
+pub const SPAWN_POSITION: f32 = INNER_WINDOW_Y_MAX + 50.;
+pub const TARGET_POSITION: f32 = INNER_WINDOW_Y_MIN + 100.;
