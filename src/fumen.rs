@@ -14,7 +14,7 @@ pub struct Fumen {
 use crate::utils::range_rng;
 impl Fumen {
     pub fn dummy(asset_server: &AssetServer) -> Self {
-        let delay = 1.985;
+        let delay = 2.0;
         let song_audio = asset_server.load("..\\fumens\\INORI\\song.ogg");
         let bpm: f64 = 146.0;
         // quarter note
@@ -23,7 +23,7 @@ impl Fumen {
         let count = 2000;
         let mut last_pos = 10;
         for i in 0..count {
-            let spawn_time = delay + seconds_per_beat / 4.0 * i as f64 - OBJ_TIME;
+            let spawn_time = delay + seconds_per_beat / 2.0 * i as f64 - OBJ_TIME;
             let arrive_time = spawn_time + OBJ_TIME;
             let mut pos: u32 = range_rng(0, 6);
             while last_pos == pos {

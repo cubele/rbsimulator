@@ -1,6 +1,7 @@
 // UI
+pub const RATIO: f32 = 720.0 / 1080.0;
 pub const WINDOW_HEIGHT: f32 = 1080.;
-pub const WINDOW_WIDTH: f32 = 720.;
+pub const WINDOW_WIDTH: f32 = WINDOW_HEIGHT * RATIO;
 /// where the game is played
 pub const INNER_WINDOW_HEIGHT: f32 = 1000.;
 pub const INNER_WINDOW_WIDTH: f32 = 640.;
