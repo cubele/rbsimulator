@@ -1,0 +1,142 @@
+use bevy::prelude::*;
+use crate::consts::*;
+use crate::coords::Coord2d;
+
+/// Keeps the textures and materials
+#[derive(Resource)]
+struct ObjTexture {
+    red_obj: Handle<Image>,
+    top_obj: Handle<Image>,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum Objecttype {
+    Normal,
+    Vertical,
+    Top,
+}
+
+#[derive(Component, Clone, Copy, Debug)]
+/// Keeps track of when each arrow should spawn and it's speed and direction
+pub struct Object {
+    pub spawn_time: f64,
+    pub arrive_time: f64,
+    pub spawn: Coord2d,
+    pub dest: Coord2d,
+    pub pos: u32,
+    pub objtype: Objecttype,
+}
+
+impl Object {
+    pub fn destination(objtype: Objecttype, pos: u32) -> Coord2d {
+        let x = match objtype {
+            Objecttype::Top => TOP_SLOT_START_X + TOP_SLOT_SPACING * pos as f32,
+            _ => BOTTOM_SLOT_START_X + BOTTOM_SLOT_SPACING * pos as f32,
+        };
+        let y = match objtype {
+            Objecttype::Top => TOP_SLOT_Y,
+            _ => BOTTOM_SLOT_Y,
+        };
+        Coord2d::new(x, y)
+    }
+
+    pub fn current_coord(&self, time: f64) -> Coord2d {
+        let t = (time - self.spawn_time) / (self.arrive_time - self.spawn_time);
+        self.spawn + (self.dest - self.spawn) * t as f32
+    }
+
+    pub fn new(spawn_time: f64, arrive_time: f64,
+               spawn_x: f32, objtype: Objecttype, pos: u32) -> Option<Self> {
+        match objtype {
+            Objecttype::Normal => {
+                if pos > 6 {
+                    error!("Invalid Normal object position: {} @ {}", pos, spawn_time);
+                    return None;
+                }
+            }
+            Objecttype::Vertical => {
+                if pos > 6 {
+                    error!("Invalid Vertical object position: {} @ {}", pos, spawn_time);
+                    return None;
+                }
+            }
+            Objecttype::Top => {
+                if pos > 2 {
+                    error!("Invalid Top object position: {} @ {}", pos, spawn_time);
+                    return None;
+                }
+            }
+        }
+        let object = Self {
+            spawn_time, arrive_time,
+            spawn: Coord2d::new(spawn_x, SPAWN_POSITION),
+            pos, objtype,
+            dest: Self::destination(objtype, pos),
+        };
+        Some(object)
+    }
+}
+
+fn load_object_texture(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
+    commands.insert_resource(ObjTexture{
+        red_obj: asset_server.load("images\\redobject.png"),
+        top_obj: asset_server.load("images\\topobject.png"),
+    });
+}
+
+use crate::fumen::Fumen;
+fn spawn_objects(
+    mut commands: Commands,
+    mut fumen: ResMut<Fumen>,
+    materials: Res<ObjTexture>,
+    time: Res<Time>,
+) {
+    while let Some(object) = fumen.current_object() {
+        let time_now = time.elapsed_seconds_f64();
+        if object.spawn_time < time_now {
+            let transform = object.current_coord(time_now)
+                                             .into_transform(OBJECT_Z + fumen.current as f32);
+            let texture = match object.objtype {
+                Objecttype::Top => materials.top_obj.clone(),
+                _ => materials.red_obj.clone(),
+            };
+            commands.spawn(SpriteBundle {
+                texture,
+                transform,
+                ..default()
+            })
+            .insert(*object);
+            fumen.current += 1;
+        } else {
+            break;
+        }
+    }
+}
+
+fn move_objects(mut commands: Commands, time: Res<Time>,
+                mut query: Query<(Entity, &mut Transform, &Object)>) {
+    let time_now = time.elapsed_seconds_f64();
+    for (e,
+        mut transform,
+        object) in query.iter_mut() {
+        (transform.translation.x, transform.translation.y) = 
+            object.current_coord(time_now).into();
+        // passed the judgement line
+        if transform.translation.y < TARGET_POSITION {
+            commands.entity(e).despawn();
+        }
+    }
+}
+
+pub struct ObjectsPlugin;
+impl Plugin for ObjectsPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_startup_system(load_object_texture)
+            .add_system(spawn_objects)
+            .add_system(move_objects);
+    }
+}

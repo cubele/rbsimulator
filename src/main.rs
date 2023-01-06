@@ -2,11 +2,12 @@ use bevy::{
     prelude::*,
 };
 
-mod notes;
+mod objects;
 mod consts;
-mod types;
+mod fumen;
 mod ui;
 mod utils;
+mod coords;
 
 use consts::*;
 
@@ -24,7 +25,7 @@ fn main() {
     });
     App::new()
         .add_plugins(defaultplugins)
-        .add_plugin(notes::ObjectsPlugin)
+        .add_plugin(objects::ObjectsPlugin)
         .add_plugin(ui::UIPlugin)
         .add_startup_system(setup)
         .run();
@@ -32,6 +33,6 @@ fn main() {
 
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
-    let testfumen = types::Fumen::dummy();
+    let testfumen = fumen::Fumen::dummy();
     commands.insert_resource(testfumen);
 }
