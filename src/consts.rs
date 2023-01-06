@@ -20,7 +20,7 @@ pub const TOP_SLOT_SPACING: f32 = (TOP_SLOT_END_X - TOP_SLOT_START_X) / 2.;
 pub const TOP_SLOT_Y: f32 = INNER_WINDOW_Y_MIN + 300.;
 
 // notes
-pub const BASE_SPEED: f32 = 400.;
+pub const OBJ_TIME: f64 = 0.8;
 pub const SPAWN_POSITION: f32 = INNER_WINDOW_Y_MAX + 50.;
 pub const TARGET_POSITION: f32 = JUDGE_LINE_POSITION;
 pub const OBJECT_Z: f32 = 100.;
@@ -35,5 +35,7 @@ pub const BOTTOM_SLOT_START_X: f32 = INNER_WINDOW_X_MIN + INNER_WINDOW_WIDTH / 7
 pub const BOTTOM_SLOT_SPACING: f32 = INNER_WINDOW_WIDTH / 7.;
 pub const BOTTOM_SLOT_Y: f32 = JUDGE_LINE_POSITION;
 
-// timing
+// audio
 pub const AUDIO_DELAY: f64 = 0.1;
+pub const VOLUME_SONG: f32 = 0.12;
+pub const VOLUME_SFX: f32 = 0.06;

@@ -30,6 +30,7 @@ fn main() {
         .add_plugin(objects::ObjectsPlugin)
         .add_plugin(ui::UIPlugin)
         .add_plugin(audio::AudioPlugin)
+        .add_plugin(sfx::SFXPlugin)
         .add_startup_system(setup)
         .run();
 }

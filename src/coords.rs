@@ -7,6 +7,14 @@ impl Coord2d {
         Self(x, y)
     }
 
+    pub fn x(&self) -> f32 {
+        self.0
+    }
+
+    pub fn y(&self) -> f32 {
+        self.1
+    }
+
     pub fn into_transform(self, z: f32) -> Transform {
         Transform::from_translation(Vec3::new(self.0, self.1, z))
     }

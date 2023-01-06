@@ -94,8 +94,8 @@ fn spawn_objects(
     materials: Res<ObjTexture>,
     time: Res<Time>,
 ) {
+    let time_now = time.elapsed_seconds_f64() - fumen.song_start_time;
     while let Some(object) = fumen.current_object() {
-        let time_now = time.elapsed_seconds_f64();
         if object.spawn_time < time_now {
             let transform = object.current_coord(time_now)
                                              .into_transform(OBJECT_Z + fumen.current as f32);
@@ -116,16 +116,23 @@ fn spawn_objects(
     }
 }
 
+use crate::sfx::SoundFX;
+/// also plays sfx for low latency
 fn move_objects(mut commands: Commands, time: Res<Time>,
-                mut query: Query<(Entity, &mut Transform, &Object)>) {
-    let time_now = time.elapsed_seconds_f64();
+                mut query: Query<(Entity, &mut Transform, &Object)>,
+                audio: Res<Audio>, sfx: Res<SoundFX>, fumen: Res<Fumen>) {
+    let time_now = time.elapsed_seconds_f64() - fumen.song_start_time;
     for (e,
         mut transform,
         object) in query.iter_mut() {
         (transform.translation.x, transform.translation.y) = 
             object.current_coord(time_now).into();
         // passed the judgement line
-        if transform.translation.y < TARGET_POSITION {
+        if transform.translation.y < object.dest.y() {
+            audio.play_with_settings(
+                sfx.justsound.clone(),
+                PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
+            );
             commands.entity(e).despawn();
         }
     }

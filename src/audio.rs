@@ -9,9 +9,10 @@ fn start_song(audio: Res<Audio>, time: Res<Time>, mut fumen: ResMut<Fumen>) {
     if !fumen.playing && time_now > AUDIO_DELAY {
         audio.play_with_settings(
             fumen.song_audio.clone(),
-            PlaybackSettings::ONCE.with_volume(0.12),
+            PlaybackSettings::ONCE.with_volume(VOLUME_SONG),
         );
         fumen.playing = true;
+        fumen.song_start_time = time_now;
     }
 }
 
