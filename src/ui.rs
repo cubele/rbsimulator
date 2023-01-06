@@ -24,7 +24,7 @@ fn setup_ui(
         )),
         ..default()
     });
-    for i in 0..3 {
+    for i in 0..TOP_SLOT_COUNT {
         commands.spawn(SpriteBundle {
             texture: materials.topslot.clone(),
             transform: Transform::from_translation(Vec3::new(

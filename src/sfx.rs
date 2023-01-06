@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use crate::consts::*;
 
 #[derive(Resource)]
 pub struct SoundFX {
@@ -11,7 +10,7 @@ fn setup_sfx(
     asset_server: Res<AssetServer>,
 ) {
     let sfx = SoundFX {
-        justsound: asset_server.load("sounds\\just.wav"),
+        justsound: asset_server.load("sounds\\sys_shot_hockey_just.ogg"),
     };
     commands.insert_resource(sfx);
 }

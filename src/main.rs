@@ -9,6 +9,8 @@ mod utils;
 mod coords;
 mod sfx;
 mod audio;
+mod parse;
+mod tests;
 
 use consts::*;
 
@@ -36,6 +38,6 @@ fn main() {
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
-    let testfumen = fumen::Fumen::dummy(&asset_server);
+    let testfumen = tests::INORI(&asset_server);
     commands.insert_resource(testfumen);
 }

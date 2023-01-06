@@ -35,12 +35,9 @@ pub fn spawn_chains(
             let h = p1.distance(&p2);
             let angle = p1.angle(&p2);
             let (mx, my) = ((p1 + p2) / 2.0).into();
-            let transform = match angle {
-                Some(angle) => Transform::from_xyz(
+            let transform = Transform::from_xyz(
                     mx, my, CHAIN_Z + fumen.currentchain as f32 * CHAIN_Z_DIFF)
-                    .with_rotation(Quat::from_rotation_z(angle)),
-                None => Transform::from_xyz(mx, my, CHAIN_Z),
-            };
+                    .with_rotation(Quat::from_rotation_z(angle));
             commands.spawn(SpriteBundle {
                 transform,
                 sprite: Sprite {
@@ -76,10 +73,7 @@ pub fn move_chains(mut commands: Commands, time: Res<Time>,
         let angle = p1.angle(&p2);
         let (mx, my) = ((p1 + p2) / 2.0).into();
         (transform.translation.x, transform.translation.y) = (mx, my);
-        transform.rotation = match angle {
-            Some(angle) => Quat::from_rotation_z(angle),
-            None => Quat::IDENTITY,
-        };
+        transform.rotation = Quat::from_rotation_z(angle);
         // this is reversed to make sure the rectangle spawns laid down
         sprite.custom_size = Some(Vec2::new(h, w));
     }

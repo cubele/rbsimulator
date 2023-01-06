@@ -9,6 +9,7 @@ impl Coord2d {
         Self(x, y)
     }
 
+    #[allow(dead_code)]
     pub fn x(&self) -> f32 {
         self.0
     }
@@ -33,8 +34,12 @@ impl Coord2d {
         }
     }
 
-    pub fn angle(&self, other: &Self) -> Option<f32> {
-        self.slope(other).map(|s| s.atan())
+    pub fn angle(&self, other: &Self) -> f32 {
+        if let Some(angle) = self.slope(other) {
+            angle.atan()
+        } else {
+            std::f32::consts::FRAC_PI_2
+        }
     }
 }
 

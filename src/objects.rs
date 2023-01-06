@@ -27,6 +27,8 @@ pub struct Object {
     /// dest position, [0-6] for normal, [0-2] for top
     pub pos: u32,
     pub objtype: Objecttype,
+    /// for long notes
+    pub duration: Option<f64>,
 }
 
 impl Object {
@@ -48,34 +50,16 @@ impl Object {
     }
 
     pub fn new(spawn_time: f64, arrive_time: f64,
-               spawn_x: f32, objtype: Objecttype, pos: u32) -> Option<Self> {
-        match objtype {
-            Objecttype::Normal => {
-                if pos > 6 {
-                    error!("Invalid Normal object position: {} @ {}", pos, spawn_time);
-                    return None;
-                }
-            }
-            Objecttype::Vertical => {
-                if pos > 6 {
-                    error!("Invalid Vertical object position: {} @ {}", pos, spawn_time);
-                    return None;
-                }
-            }
-            Objecttype::Top => {
-                if pos > 2 {
-                    error!("Invalid Top object position: {} @ {}", pos, spawn_time);
-                    return None;
-                }
-            }
-        }
+               spawn_x: f32, objtype: Objecttype, pos: u32,
+               duration: Option<f64>) -> Self {
         let object = Self {
             spawn_time, arrive_time,
-            spawn: Coord2d::new(spawn_x, SPAWN_POSITION),
+            spawn: (spawn_x, SPAWN_POSITION).into(),
             pos, objtype,
             dest: Self::destination(objtype, pos),
+            duration,
         };
-        Some(object)
+        object
     }
 }
 
@@ -112,7 +96,6 @@ fn spawn_objects(
                 ..default()
             })
             .insert(*object);
-            info!("Spawned object: {:?}", object);
             fumen.current += 1;
         } else {
             break;
