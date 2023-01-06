@@ -4,9 +4,10 @@ use crate::coords::Coord2d;
 
 /// Keeps the textures and materials
 #[derive(Resource)]
-struct ObjTexture {
-    red_obj: Handle<Image>,
-    top_obj: Handle<Image>,
+pub struct ObjTexture {
+    pub red_obj: Handle<Image>,
+    pub top_obj: Handle<Image>,
+    pub chain: Handle<Image>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -17,12 +18,13 @@ pub enum Objecttype {
 }
 
 #[derive(Component, Clone, Copy, Debug)]
-/// Keeps track of when each arrow should spawn and it's speed and direction
 pub struct Object {
     pub spawn_time: f64,
     pub arrive_time: f64,
+    /// reflections are not considered for now
     pub spawn: Coord2d,
     pub dest: Coord2d,
+    /// dest position, [0-6] for normal, [0-2] for top
     pub pos: u32,
     pub objtype: Objecttype,
 }
@@ -82,8 +84,9 @@ fn load_object_texture(
     asset_server: Res<AssetServer>,
 ) {
     commands.insert_resource(ObjTexture{
-        red_obj: asset_server.load("images\\redobject.png"),
+        red_obj: asset_server.load("images\\sad.png"),
         top_obj: asset_server.load("images\\topobject.png"),
+        chain: asset_server.load("images\\chain.png"),
     });
 }
 
@@ -98,7 +101,7 @@ fn spawn_objects(
     while let Some(object) = fumen.current_object() {
         if object.spawn_time < time_now {
             let transform = object.current_coord(time_now)
-                                             .into_transform(OBJECT_Z + fumen.current as f32);
+                                             .into_transform(OBJECT_Z + fumen.current as f32 * OBJECT_Z_DIFF);
             let texture = match object.objtype {
                 Objecttype::Top => materials.top_obj.clone(),
                 _ => materials.red_obj.clone(),
@@ -109,6 +112,7 @@ fn spawn_objects(
                 ..default()
             })
             .insert(*object);
+            info!("Spawned object: {:?}", object);
             fumen.current += 1;
         } else {
             break;
@@ -125,8 +129,6 @@ fn move_objects(mut commands: Commands, time: Res<Time>,
     for (e,
         mut transform,
         object) in query.iter_mut() {
-        (transform.translation.x, transform.translation.y) = 
-            object.current_coord(time_now).into();
         // passed the judgement line
         if transform.translation.y < object.dest.y() {
             audio.play_with_settings(
@@ -135,15 +137,20 @@ fn move_objects(mut commands: Commands, time: Res<Time>,
             );
             commands.entity(e).despawn();
         }
+        (transform.translation.x, transform.translation.y) = 
+            object.current_coord(time_now).into();
     }
 }
 
+use crate::chains::*;
 pub struct ObjectsPlugin;
 impl Plugin for ObjectsPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_startup_system(load_object_texture)
             .add_system(spawn_objects)
-            .add_system(move_objects);
+            .add_system(move_objects)
+            .add_system(spawn_chains)
+            .add_system(move_chains);
     }
 }

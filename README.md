@@ -11,7 +11,7 @@ TODO: packaged version
 
 ## TODO List
 - [x] basic game
-- [ ] chain objects
+- [x] chain objects
 - [ ] just reflecs
 - [ ] VO and SO
 - [ ] LONG objects

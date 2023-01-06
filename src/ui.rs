@@ -24,7 +24,7 @@ fn setup_ui(
         )),
         ..default()
     });
-    for i in 0..4 {
+    for i in 0..3 {
         commands.spawn(SpriteBundle {
             texture: materials.topslot.clone(),
             transform: Transform::from_translation(Vec3::new(
@@ -70,8 +70,8 @@ fn setup_time_text(
                         sections: vec![TextSection {
                             value: "Time: ".to_string(),
                             style: TextStyle {
-                                font_size: 40.0,
-                                color: Color::rgb(0.9, 0.9, 0.9),
+                                font_size: 30.0,
+                                color: Color::GOLD,
                                 font: font.clone(),
                                 ..default()
                             },
