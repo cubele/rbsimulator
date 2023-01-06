@@ -4,12 +4,13 @@ use crate::parse::*;
 use crate::objects::*;
 use crate::fumen::*;
 use bevy::prelude::*;
+use std::collections::HashMap;
 
 #[allow(non_snake_case)]
 pub fn INORI(asset_server: &AssetServer) -> Fumen {
     let mut objects = vec![];
     let mut id = 0;
-    for measure in 0..2 {
+    for measure in 0..1 {
         for i in 0..16 {
             let mut object_type = Objecttype::Normal;
             let duration = None;
@@ -37,7 +38,7 @@ pub fn INORI(asset_server: &AssetServer) -> Fumen {
     }
 
     let cycle = [999, 4];
-    for measure in 2..4 {
+    for measure in 1..2 {
         for i in 0..16 {
             let object_type = Objecttype::Vertical;
             let duration = None;
@@ -67,7 +68,7 @@ pub fn INORI(asset_server: &AssetServer) -> Fumen {
         }
     }
 
-    for measure in 4..6 {
+    for measure in 2..3 {
         for i in 0..16 {
             let object_type = Objecttype::Normal;
             let duration = None;
@@ -90,13 +91,55 @@ pub fn INORI(asset_server: &AssetServer) -> Fumen {
         }
     }
 
-    for measure in 6..8 {
+    for measure in 3..4 {
         for i in 0..16 {
             let object_type = Objecttype::Normal;
             let duration = None;
             let pos = None;
             let chained = if (id + 4) / 8 == id / 8 {
                 Some(id + 4)
+            } else {
+                None
+            };
+            let object = ObjectDescription {
+                measure,
+                beat: 1.0 / 16.0 * i as f64,
+                object_type,
+                duration,
+                pos,
+                chained,
+            };
+            objects.push(object);
+            id += 1;
+        }
+    }
+
+    let mut chained_id = HashMap::new();
+    for measure in 4..100 {
+        for i in 0..16 {
+            let mut object_type = match range_rng(0, 2) {
+                0 => Objecttype::Normal,
+                1 => Objecttype::Top,
+                2 => Objecttype::Vertical,
+                _ => unreachable!(),
+            };
+            if let Some(prev) = chained_id.get(&id) {
+                object_type = objects[*prev as usize].object_type;
+            }
+            let duration = None;
+            let pos = match object_type {
+                Objecttype::Normal => None,
+                Objecttype::Top => Some(range_rng(0, TOP_SLOT_COUNT - 1)),
+                Objecttype::Vertical => Some(range_rng(0, BOTTOM_SLOT_COUNT - 1)),
+            };
+            let chained = if measure < 99 {
+                let rng = range_rng(0, 8);
+                if rng > 0 && rng < 5 {
+                    chained_id.insert(id + rng, id);
+                    Some(id + rng)
+                } else {
+                    None
+                }
             } else {
                 None
             };
