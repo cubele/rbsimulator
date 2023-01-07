@@ -115,13 +115,12 @@ pub fn INORI(asset_server: &AssetServer) -> Fumen {
     }
 
     let mut chained_id = HashMap::new();
-    for measure in 4..100 {
+    for measure in 4..84 {
         for i in 0..16 {
-            let mut object_type = match range_rng(0, 2) {
-                0 => Objecttype::Normal,
-                1 => Objecttype::Top,
-                2 => Objecttype::Vertical,
-                _ => unreachable!(),
+            let mut object_type = match range_rng(0, 10) {
+                x if x < 5 => Objecttype::Normal,
+                x if x < 9 => Objecttype::Top,
+                _ => Objecttype::Vertical,
             };
             if let Some(prev) = chained_id.get(&id) {
                 object_type = objects[*prev as usize].object_type;
@@ -132,8 +131,8 @@ pub fn INORI(asset_server: &AssetServer) -> Fumen {
                 Objecttype::Top => Some(range_rng(0, TOP_SLOT_COUNT - 1)),
                 Objecttype::Vertical => Some(range_rng(0, BOTTOM_SLOT_COUNT - 1)),
             };
-            let chained = if measure < 99 {
-                let rng = range_rng(0, 8);
+            let chained = if measure < 83 {
+                let rng = range_rng(0, 10);
                 if rng > 0 && rng < 5 {
                     chained_id.insert(id + rng, id);
                     Some(id + rng)

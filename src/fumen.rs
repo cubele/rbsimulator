@@ -11,6 +11,8 @@ pub struct Fumen {
     pub song_audio: Handle<AudioSource>,
     pub playing: bool,
     pub song_start_time: f64,
+    pub seconds_per_measure: f64,
+    pub delay: f64,
 }
 
 impl Fumen {

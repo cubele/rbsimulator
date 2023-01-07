@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::consts::*;
+use crate::fumen::Fumen;
 
 #[derive(Resource)]
 struct BGTexture {
@@ -22,6 +23,10 @@ fn setup_ui(
         transform: Transform::from_translation(Vec3::new(
             0., 0., 0.
         )),
+        sprite: Sprite {
+            custom_size: Some(Vec2::new(WINDOW_WIDTH, WINDOW_HEIGHT)),
+            ..default()
+        },
         ..default()
     });
     for i in 0..TOP_SLOT_COUNT {
@@ -30,6 +35,10 @@ fn setup_ui(
             transform: Transform::from_translation(Vec3::new(
                 TOP_SLOT_START_X + TOP_SLOT_SPACING * i as f32, TOP_SLOT_Y, 1.
             )),
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(TOP_SLOT_SIZE, TOP_SLOT_SIZE)),
+                ..default()
+            },
             ..default()
         });
     }
@@ -38,6 +47,10 @@ fn setup_ui(
         transform: Transform::from_translation(Vec3::new(
             0., JUDGE_LINE_POSITION, 1.
         )),
+        sprite: Sprite {
+            custom_size: Some(Vec2::new(JUDGE_LINE_WIDTH, JUDGE_LINE_HEIGHT)),
+            ..default()
+        },
         ..default()
     });
 }
@@ -68,7 +81,7 @@ fn setup_time_text(
                 .spawn(TextBundle {
                     text: Text {
                         sections: vec![TextSection {
-                            value: "Time: ".to_string(),
+                            value: "Measure: ".to_string(),
                             style: TextStyle {
                                 font_size: 30.0,
                                 color: Color::GOLD,
@@ -84,11 +97,13 @@ fn setup_time_text(
         });
 }
 
-fn update_time_text(time: Res<Time>, mut query: Query<&mut Text, With<TimeText>>) {
-    let secs = time.elapsed_seconds_f64();
+fn update_time_text(time: Res<Time>,
+                    mut query: Query<&mut Text, With<TimeText>>,
+                    fumen: Res<Fumen>) {
+    let meas = (time.elapsed_seconds_f64() - fumen.song_start_time - fumen.delay) / fumen.seconds_per_measure;
 
     for mut text in query.iter_mut() {
-        text.sections[0].value = format!("Time: {:.2}", secs);
+        text.sections[0].value = format!("Measure: {}", f64::floor(meas));
     }
 }
 

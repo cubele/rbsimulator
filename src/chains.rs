@@ -43,6 +43,7 @@ pub fn spawn_chains(
                 sprite: Sprite {
                     // this is reversed to make sure the rectangle spawns laid down
                     custom_size: Some(Vec2::new(h, w)),
+                    color: Color::rgba(1.0, 1.0, 1.0, 0.5),
                     ..default()
                 },
                 texture: materials.chain.clone(),

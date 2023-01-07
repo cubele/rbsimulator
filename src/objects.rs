@@ -7,6 +7,7 @@ use crate::coords::Coord2d;
 pub struct ObjTexture {
     pub red_obj: Handle<Image>,
     pub top_obj: Handle<Image>,
+    pub vertical_obj: Handle<Image>,
     pub chain: Handle<Image>,
 }
 
@@ -70,6 +71,7 @@ fn load_object_texture(
     commands.insert_resource(ObjTexture{
         red_obj: asset_server.load("images\\sad.png"),
         top_obj: asset_server.load("images\\topobject.png"),
+        vertical_obj: asset_server.load("images\\sad2.png"),
         chain: asset_server.load("images\\chain.png"),
     });
 }
@@ -88,7 +90,8 @@ fn spawn_objects(
                                              .into_transform(OBJECT_Z + fumen.current as f32 * OBJECT_Z_DIFF);
             let texture = match object.objtype {
                 Objecttype::Top => materials.top_obj.clone(),
-                _ => materials.red_obj.clone(),
+                Objecttype::Vertical => materials.vertical_obj.clone(),
+                Objecttype::Normal => materials.red_obj.clone(),
             };
             commands.spawn(SpriteBundle {
                 texture,
@@ -119,6 +122,7 @@ fn move_objects(mut commands: Commands, time: Res<Time>,
                 PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
             );
             commands.entity(e).despawn();
+            continue;
         }
         (transform.translation.x, transform.translation.y) = 
             object.current_coord(time_now).into();
