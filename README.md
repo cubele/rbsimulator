@@ -13,11 +13,12 @@ TODO: packaged version
 - [x] basic game
 - [x] chain objects
 - [ ] just reflecs
-- [ ] VO and SO
-- [ ] LONG objects
+- [x] VO
+- [ ] SO
+- [ ] LO
 - [ ] chords
 - [ ] precise RB physics
-- [ ] precise RB fumen generation
+- [x] precise RB fumen generation
 - [ ] adjustable High-speed
 - [ ] better UI
 - [ ] BMS parser
