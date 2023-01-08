@@ -117,7 +117,7 @@ impl FumenDescription {
                             pos = range_rng(0, BOTTOM_SLOT_COUNT - 1);
                         }
                     }
-                    spawn_x = range_rng(INNER_WINDOW_X_MIN, INNER_WINDOW_X_MAX);
+                    spawn_x = range_rng(SPAWN_X_MIN, SPAWN_X_MAX);
                 },
                 Objecttype::Top => {
                     assert!(object.pos.is_some() && object.pos.unwrap() < TOP_SLOT_COUNT);

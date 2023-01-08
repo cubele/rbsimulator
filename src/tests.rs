@@ -183,7 +183,7 @@ pub fn INORI(asset_server: &AssetServer) -> Fumen {
     }
 
     let fumen = FumenDescription {
-        name: "INORI".to_string(),
+        name: "INORIです".to_string(),
         artist: "dj TAKA feat. HAL".to_string(),
         charter: "A79".to_string(),
         bpm: 146.0,

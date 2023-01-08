@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 mod objects;
 mod chains;
+#[allow(dead_code)]
 mod consts;
 mod fumen;
 mod ui;
