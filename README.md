@@ -15,12 +15,12 @@ TODO: packaged version
 - [ ] just reflecs
 - [x] VO
 - [ ] SO
-- [ ] LO
+- [x] LO
 - [x] chords
 - [ ] precise RB physics
 - [x] precise RB fumen generation
 - [ ] adjustable High-speed
-- [ ] better UI
+- [x] better UI
 - [ ] BMS parser
 - [ ] investigate latency and performance
 - [ ] game menu/song selection

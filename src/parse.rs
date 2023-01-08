@@ -71,8 +71,9 @@ impl FumenDescription {
                 let (measure, beat) = (object.measure, object.beat);
                 let arrive_time = seconds_from_beat(measure, beat, bpm, delay);
                 let pos = object.pos.unwrap();
+                let duration = object.duration.map(|x| seconds_from_beat(0, x, bpm, 0.));
                 vo_times.push((arrive_time, pos));
-                occupy_events.push((arrive_time + occupy_duration, pos, -1));
+                occupy_events.push((arrive_time + occupy_duration + duration.unwrap_or(0.), pos, -1));
                 occupy_events.push((arrive_time - occupy_duration, pos, 1));
             }
         }
@@ -85,9 +86,9 @@ impl FumenDescription {
             let spawn_time = arrive_time - OBJ_TIME;
             let mut pos;
             let mut spawn_x;
-            let duration = object.duration;
+            let duration = object.duration.map(|x| seconds_from_beat(0, x, bpm, 0.));
 
-            // handle occured occupy events
+            // handle occured occupy events, only unoccupy events in here
             occupy_events.retain(|(time, pos, val)| {
                 if *time < arrive_time {
                     occupied[*pos as usize] += val;
@@ -96,6 +97,7 @@ impl FumenDescription {
                     true
                 }
             });
+            // handle future vo occuping events
             vo_times.retain(|(ntime, pos)| {
                 if *ntime - occupy_duration < arrive_time {
                     occupied[*pos as usize] += 1;
@@ -171,6 +173,28 @@ impl FumenDescription {
                 }
             }
 
+            if let Some(duration) = duration {
+                // generate position for LO
+                if object.object_type == Objecttype::Normal {
+                    let end_time = arrive_time + duration;
+
+                    let mut vo_occupied = [0; BOTTOM_SLOT_COUNT as usize];
+                    for (ntime, pos) in vo_times.iter() {
+                        if *ntime < end_time + occupy_duration &&
+                            *ntime > arrive_time - occupy_duration {
+                            vo_occupied[*pos as usize] += 1;
+                        }
+                    }
+                    if occupied.iter().zip(vo_occupied.iter()).position(|(x, y)| *x + *y == 0).is_none() {
+                        error!("No available slots for chain, overlap@ measure{} beat{}!", measure, beat);
+                    } else {
+                        while occupied[pos as usize] + vo_occupied[pos as usize] > 0 {
+                            pos = range_rng(0, BOTTOM_SLOT_COUNT - 1);
+                        }
+                    }
+                }
+            }
+
             // is it a chord?
             let chord = {
                 let chord_last = if id == 0 {
@@ -198,20 +222,13 @@ impl FumenDescription {
 
             // add occupation event for itself, chain and VO events are already added
             match object.object_type {
-                Objecttype::Normal => {
+                x if x == Objecttype::Normal || x == Objecttype::Vertical => {
                     occupied[pos as usize] += 1;
                     occupy_events.push(
-                        (arrive_time + occupy_duration, pos, -1)
+                        (arrive_time + occupy_duration + duration.unwrap_or(0.), pos, -1)
                     );
                 },
-                Objecttype::Top => {
-                },
-                Objecttype::Vertical => {
-                    occupied[pos as usize] += 1;
-                    occupy_events.push(
-                        (arrive_time + occupy_duration, pos, -1)
-                    );
-                },
+                _ => {},
             }
 
             // chains for rendering

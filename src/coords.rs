@@ -36,7 +36,12 @@ impl Coord2d {
 
     pub fn angle(&self, other: &Self) -> f32 {
         if let Some(angle) = self.slope(other) {
-            angle.atan()
+             let rad = angle.atan();
+             if rad < 0. {
+                rad + std::f32::consts::PI
+            } else {
+                rad
+             }
         } else {
             std::f32::consts::FRAC_PI_2
         }

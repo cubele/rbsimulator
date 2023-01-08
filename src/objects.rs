@@ -6,8 +6,15 @@ use crate::coords::Coord2d;
 #[derive(Resource)]
 pub struct ObjTexture {
     pub red_obj: Handle<Image>,
+    pub red_lo_start: Handle<Image>,
+    pub red_lo_mid: Handle<Image>,
+    pub red_lo_end: Handle<Image>,
     pub top_obj: Handle<Image>,
+    pub top_lo_start: Handle<Image>,
+    pub top_lo_mid: Handle<Image>,
+    pub top_lo_end: Handle<Image>,
     pub vertical_obj: Handle<Image>,
+    pub vertical_lo_start: Handle<Image>,
     pub chain: Handle<Image>,
     pub glow: Handle<Image>,
 }
@@ -73,12 +80,25 @@ fn load_object_texture(
 ) {
     commands.insert_resource(ObjTexture{
         red_obj: asset_server.load("images\\redobj.png"),
+        red_lo_start: asset_server.load("images\\redobj.png"),
+        red_lo_mid: asset_server.load("images\\redlomiddle.png"),
+        red_lo_end: asset_server.load("images\\redloend.png"),
         top_obj: asset_server.load("images\\topobj.png"),
+        top_lo_start: asset_server.load("images\\topobj.png"),
+        top_lo_mid: asset_server.load("images\\toplomiddle.png"),
+        top_lo_end: asset_server.load("images\\toploend.png"),
         vertical_obj: asset_server.load("images\\redvo.png"),
+        vertical_lo_start: asset_server.load("images\\redvo.png"),
         chain: asset_server.load("images\\chain.png"),
         glow: asset_server.load("images\\glow.png"),
     });
 }
+
+#[derive(Component)]
+struct LoMid;
+
+#[derive(Component)]
+struct LoEnd;
 
 use crate::fumen::Fumen;
 fn spawn_objects(
@@ -92,36 +112,88 @@ fn spawn_objects(
         if object.spawn_time < time_now {
             let transform = object.current_coord(time_now)
                                              .into_transform(OBJECT_Z + fumen.current as f32 * OBJECT_Z_DIFF);
+            let islong = object.duration.is_some();
             let texture = match object.objtype {
-                Objecttype::Top => materials.top_obj.clone(),
-                Objecttype::Vertical => materials.vertical_obj.clone(),
-                Objecttype::Normal => materials.red_obj.clone(),
+                Objecttype::Top => if islong {
+                    materials.top_lo_start.clone() 
+                } else {
+                    materials.top_obj.clone()
+                },
+                Objecttype::Vertical => if islong {
+                    materials.vertical_lo_start.clone()
+                } else {
+                    materials.vertical_obj.clone()
+                },
+                Objecttype::Normal => if islong {
+                    materials.red_lo_start.clone()
+                } else {
+                    materials.red_obj.clone()
+                },
             };
             let sprite = Sprite {
                 custom_size: Some(Vec2::new(OBJECT_SIZE, OBJECT_SIZE)),
                 ..default()
             };
-            if object.chord {
-                commands.spawn(SpriteBundle {
-                    sprite,
-                    texture,
-                    transform,
-                    ..default()
-                }).with_children(|parent| {
+            let bundle = SpriteBundle {
+                sprite: sprite.clone(),
+                texture,
+                transform,
+                ..default()
+            };
+            let mut e = commands.spawn(bundle);
+            if let Some(duration) = object.duration {
+                let (midtexture, endtexture) = match object.objtype {
+                    Objecttype::Top => (materials.top_lo_mid.clone(), materials.top_lo_end.clone()),
+                    Objecttype::Vertical => (materials.red_lo_mid.clone(), materials.red_lo_end.clone()),
+                    Objecttype::Normal => (materials.red_lo_mid.clone(), materials.red_lo_end.clone()),
+                };
+                let p1 = object.current_coord(time_now);
+                let p2 = object.current_coord(time_now - duration.min(0.15));
+                // expand the line to a rectangle
+                let w = OBJECT_SIZE;
+                let h = p1.distance(&p2);
+                let angle = p1.angle(&p2);
+                let (mx, my) = ((p2 - p1) / 2.0).into();
+                let transform_mid = Transform::from_xyz(
+                    mx, my, -0.5)
+                    .with_rotation(Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2 + angle));
+                e.add_children(|parent| {
                     parent.spawn(SpriteBundle {
+                        sprite: Sprite {
+                            custom_size: Some(Vec2::new(w, h)),
+                            ..default()
+                        },
+                        texture: midtexture,
+                        transform: transform_mid,
+                        ..default()
+                    }).insert(LoMid);
+                });
+                let (ex, ey) = (p2 - p1).into();
+                let transform_end = Transform::from_xyz(ex, ey, -1.)
+                    .with_rotation(Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2 + angle));
+                e.add_children(|parent| {
+                    parent.spawn(SpriteBundle {
+                        sprite: Sprite {
+                            custom_size: Some(Vec2::new(OBJECT_SIZE, OBJECT_SIZE)),
+                            ..default()
+                        },
+                        texture: endtexture,
+                        transform: transform_end,
+                        ..default()
+                    }).insert(LoEnd);
+                });
+            }
+            if object.chord {
+                e.add_children(|parent| {
+                    parent.spawn(SpriteBundle {
+                        sprite: sprite.clone(),
                         texture: materials.glow.clone(),
                         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.1)),
                         ..default()
                     });
-                }).insert(*object);
-            } else {
-                commands.spawn(SpriteBundle {
-                    sprite,
-                    texture,
-                    transform,
-                    ..default()
-                }).insert(*object);
+                });
             }
+            e.insert(*object);
             fumen.current += 1;
         } else {
             break;
@@ -130,16 +202,96 @@ fn spawn_objects(
 }
 
 use crate::sfx::SoundFX;
-/// also plays sfx for low latency
-fn move_objects(mut commands: Commands, time: Res<Time>,
-                mut query: Query<(Entity, &mut Transform, &Object)>,
-                audio: Res<Audio>, sfx: Res<SoundFX>, fumen: Res<Fumen>) {
+/// also plays sfx for lower latency
+fn move_objects(
+    mut commands: Commands, time: Res<Time>,
+    mut query_single: Query<(Entity, &mut Transform, &Object), (Without<LoMid>, Without<LoMid>, Without<Children>)>,
+    mut query: Query<(Entity, &mut Transform, &Object, &Children), (Without<LoMid>, Without<LoMid>)>,
+    mut query_lomid: Query<(Entity, &mut Sprite, &mut Transform), (With<LoMid>, Without<LoEnd>, Without<Object>)>,
+    mut query_loend: Query<(Entity, &mut Transform), (With<LoEnd>, Without<LoMid>, Without<Object>)>,
+    audio: Res<Audio>, sfx: Res<SoundFX>, fumen: Res<Fumen>
+) {
     let time_now = time.elapsed_seconds_f64() - fumen.song_start_time;
+    let time_last = time_now - time.delta_seconds_f64();
+    let mut played = false;
     for (e,
         mut transform,
-        object) in query.iter_mut() {
+        object,
+        children) in query.iter_mut() {
+        if let Some(duration) = object.duration {
+            let disp_duration = duration.min(0.15);
+            // LO
+            if time_now < object.arrive_time {
+                (transform.translation.x, transform.translation.y) = 
+                    object.current_coord(time_now).into();
+            }
+            if time_last < object.arrive_time && time_now >= object.arrive_time {
+                // just arrived
+                if !played {
+                    audio.play_with_settings(
+                        sfx.justsound.clone(),
+                        PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
+                    );
+                    played = true;
+                }
+                (transform.translation.x, transform.translation.y) = 
+                    object.dest.into();
+            }
+            if time_now >= object.arrive_time && time_now < object.arrive_time + duration {
+                // in the middle
+                let p1 = object.dest;
+                let duration_rem = duration - (time_now - object.arrive_time);
+                let rem_percent = duration_rem / duration;
+                let p2 = object.current_coord(object.arrive_time - disp_duration * rem_percent);
+
+                let angle = p1.angle(&p2);
+                let (mx, my) = ((p2 - p1) / 2.0).into();
+                let w = OBJECT_SIZE;
+                let h = p1.distance(&p2);
+
+                let (_, mut sprite, mut transform) = query_lomid.get_mut(children[0]).unwrap();
+                (transform.translation.x, transform.translation.y) = (mx, my);
+                transform.rotation = Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2 + angle);
+                sprite.custom_size = Some(Vec2::new(w, h));
+
+                let (ex, ey) = (p2 - p1).into();
+                let (_, mut transform) = query_loend.get_mut(children[1]).unwrap();
+                (transform.translation.x, transform.translation.y) = (ex, ey);
+                transform.rotation = Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2 + angle);
+            }
+            if time_now >= object.arrive_time + duration {
+                if !played {
+                    audio.play_with_settings(
+                        sfx.justsound.clone(),
+                        PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
+                    );
+                    played = true;
+                }
+                commands.entity(e).despawn_recursive();
+                continue;
+            }
+        } else {
+            // passed the judgement line
+            if time_now > object.arrive_time {
+                if !played {
+                    audio.play_with_settings(
+                        sfx.justsound.clone(),
+                        PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
+                    );
+                    played = true;
+                }
+                commands.entity(e).despawn_recursive();
+                continue;
+            }
+            (transform.translation.x, transform.translation.y) = 
+                object.current_coord(time_now).into();
+        }
+    }
+
+    // no elegant way to do it unless change overall design
+    for (e, mut transform, object) in query_single.iter_mut() {
         // passed the judgement line
-        if transform.translation.y < object.dest.y() {
+        if time_now > object.arrive_time {
             audio.play_with_settings(
                 sfx.justsound.clone(),
                 PlaybackSettings::ONCE.with_volume(VOLUME_SFX),

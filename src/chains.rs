@@ -37,12 +37,11 @@ pub fn spawn_chains(
             let (mx, my) = ((p1 + p2) / 2.0).into();
             let transform = Transform::from_xyz(
                     mx, my, CHAIN_Z + fumen.currentchain as f32 * CHAIN_Z_DIFF)
-                    .with_rotation(Quat::from_rotation_z(angle));
+                    .with_rotation(Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2 + angle));
             commands.spawn(SpriteBundle {
                 transform,
                 sprite: Sprite {
-                    // this is reversed to make sure the rectangle spawns laid down
-                    custom_size: Some(Vec2::new(h, w)),
+                    custom_size: Some(Vec2::new(w, h)),
                     color: Color::rgba(1.0, 1.0, 1.0, 0.5),
                     ..default()
                 },
@@ -74,8 +73,7 @@ pub fn move_chains(mut commands: Commands, time: Res<Time>,
         let angle = p1.angle(&p2);
         let (mx, my) = ((p1 + p2) / 2.0).into();
         (transform.translation.x, transform.translation.y) = (mx, my);
-        transform.rotation = Quat::from_rotation_z(angle);
-        // this is reversed to make sure the rectangle spawns laid down
-        sprite.custom_size = Some(Vec2::new(h, w));
+        transform.rotation = Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2 + angle);
+        sprite.custom_size = Some(Vec2::new(w, h));
     }
 }
