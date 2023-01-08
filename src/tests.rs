@@ -6,7 +6,6 @@ use crate::fumen::*;
 use bevy::prelude::*;
 use std::collections::HashMap;
 
-#[allow(non_snake_case, dead_code)]
 pub fn INORI(asset_server: &AssetServer) -> Fumen {
     let mut objects = vec![];
     let mut id = 0;
@@ -211,7 +210,6 @@ pub fn INORI(asset_server: &AssetServer) -> Fumen {
     fumen.into_fumen(asset_server)
 }
 
-#[allow(dead_code)]
 pub fn testfumen(asset_server: &AssetServer) -> Fumen {
     let mut objects = vec![];
     let mut id = 0;

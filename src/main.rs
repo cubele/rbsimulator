@@ -11,6 +11,7 @@ mod coords;
 mod sfx;
 mod audio;
 mod parse;
+#[allow(non_snake_case, dead_code, unused)]
 mod tests;
 
 use consts::*;
