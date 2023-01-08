@@ -1,7 +1,7 @@
 # RB poor
 Brand new Reflec Beat simulator.
 
-Created using rust and [BEVY](https://bevyengine.org/).vc 
+Created using rust and [BEVY](https://bevyengine.org/)
 
 ## How to run
 TODO: packaged version
