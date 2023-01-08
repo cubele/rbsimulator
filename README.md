@@ -19,12 +19,12 @@ TODO: packaged version
 - [x] chords
 - [ ] precise RB physics
 - [x] precise RB fumen generation
-- [ ] adjustable High-speed
 - [x] better UI
-- [ ] BMS parser
-- [ ] investigate latency and performance
+- [ ] BMS/PLY parser
 - [ ] game menu/song selection
+- [ ] Fumen maker and better preview
 - [ ] actually be able to play
+- [ ] investigate latency and performance
 
 ## references
 [Be-Music Script Format](https://fileformats.fandom.com/wiki/Be-Music_Script)
