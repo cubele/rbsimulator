@@ -6,6 +6,7 @@ use crate::utils::range_rng;
 use bevy::prelude::*;
 use std::collections::HashMap;
 
+#[derive(Clone)]
 pub struct ObjectDescription {
     pub measure: u32,
     pub beat: f64,
@@ -76,6 +77,7 @@ impl FumenDescription {
             }
         }
 
+        // enumerate in order of spawn time
         for (id, object) in self.objects.iter().enumerate() {
             let id = id as u32;
             let (measure, beat) = (object.measure, object.beat);
@@ -85,6 +87,7 @@ impl FumenDescription {
             let mut spawn_x;
             let duration = object.duration;
 
+            // handle occured occupy events
             occupy_events.retain(|(time, pos, val)| {
                 if *time < arrive_time {
                     occupied[*pos as usize] += val;
@@ -93,7 +96,6 @@ impl FumenDescription {
                     true
                 }
             });
-
             vo_times.retain(|(ntime, pos)| {
                 if *ntime - occupy_duration < arrive_time {
                     occupied[*pos as usize] += 1;
@@ -104,6 +106,7 @@ impl FumenDescription {
                 }
             });
             
+            // generate position without considering chains
             match object.object_type {
                 Objecttype::Normal => {
                     pos = range_rng(0, BOTTOM_SLOT_COUNT - 1);
@@ -128,16 +131,17 @@ impl FumenDescription {
                 },
             }
 
+            // handle chained positions
             if let Some(chainedpos) = chain_pos.get(&id) {
                 pos = *chainedpos;
             }
-
             if let Some(chainedspawn) = chain_spawn.get(&id) {
                 spawn_x = *chainedspawn;
             }
 
+            // generate position for start of chain
             if let Some(mut next) = object.chained {
-                // first of chain, make sure future chain dosen't overlap with verticals
+                // start of chain, make sure future chain dosen't overlap with verticals
                 if object.object_type == Objecttype::Normal && chain_pos.get(&id).is_none() {
                     while let Some(nobject) = self.objects.get(next as usize) {
                         if let Some(nnext) = nobject.chained {
@@ -167,14 +171,32 @@ impl FumenDescription {
                 }
             }
 
+            // is it a chord?
+            let chord = {
+                let chord_last = if id == 0 {
+                    false
+                } else {
+                    let last_object = self.objects.get(id as usize - 1).unwrap();
+                    last_object.measure == measure && last_object.beat == beat
+                };
+                let chord_next = 
+                if let Some(next_object) = self.objects.get(id as usize + 1) {
+                    next_object.measure == measure && next_object.beat == beat
+                } else {
+                    false
+                };
+                chord_last || chord_next
+            };
+
             objects.push(Object::new(
                 spawn_time, arrive_time, 
                 spawn_x, 
                 object.object_type,
                 pos, duration,
-                false,
+                chord,
             ));
 
+            // add occupation event for itself, chain and VO events are already added
             match object.object_type {
                 Objecttype::Normal => {
                     occupied[pos as usize] += 1;
@@ -192,6 +214,7 @@ impl FumenDescription {
                 },
             }
 
+            // chains for rendering
             if let Some(prev) = chain_prev.get(&id) {
                 chains.push(Chain{
                     head: objects[*prev as usize],
@@ -199,6 +222,7 @@ impl FumenDescription {
                 });
             }
 
+            // chain info for future objects
             if let Some(next) = object.chained {
                 chain_pos.insert(next, pos);
                 chain_prev.insert(next, id);
@@ -214,7 +238,8 @@ impl FumenDescription {
                 }
             }
         }
-        // sort by spawn time, objects are naturally sorted
+
+        // sort chains by spawn time, objects are naturally sorted
         chains.sort_by(
             |a, b| a.head.arrive_time.partial_cmp(&b.head.arrive_time).unwrap()
         );

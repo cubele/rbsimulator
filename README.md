@@ -16,7 +16,7 @@ TODO: packaged version
 - [x] VO
 - [ ] SO
 - [ ] LO
-- [ ] chords
+- [x] chords
 - [ ] precise RB physics
 - [x] precise RB fumen generation
 - [ ] adjustable High-speed

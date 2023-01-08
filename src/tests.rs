@@ -114,8 +114,34 @@ pub fn INORI(asset_server: &AssetServer) -> Fumen {
         }
     }
 
+    for measure in 4..5 {
+        for i in 0..8 {
+            let object_type = Objecttype::Normal;
+            let duration = None;
+            let pos = None;
+            let chained = None;
+            let mut object = ObjectDescription {
+                measure,
+                beat: 1.0 / 8.0 * i as f64,
+                object_type,
+                duration,
+                pos,
+                chained,
+            };
+            objects.push(object.clone());
+            object.object_type = Objecttype::Top;
+            object.pos = Some(range_rng(0, TOP_SLOT_COUNT - 1));
+            objects.push(object.clone());
+            object.object_type = Objecttype::Vertical;
+            object.pos = Some(range_rng(0, BOTTOM_SLOT_COUNT - 1));
+            objects.push(object);
+            id += 3;
+        }
+    }
+
+
     let mut chained_id = HashMap::new();
-    for measure in 4..83 {
+    for measure in 5..83 {
         for i in 0..16 {
             let mut object_type = match range_rng(0, 10) {
                 x if x < 5 => Objecttype::Normal,
