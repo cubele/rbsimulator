@@ -43,6 +43,15 @@ impl FumenDescription {
         let song_audio = asset_server.load(audio_path);
         let bpm: f64 = self.bpm;
 
+        let metadata = FumenMetadata {
+            name: self.name,
+            artist: self.artist,
+            charter: self.charter,
+            bpm: bpm,
+            difficulty: "Normal".to_string(),
+            level: 1,
+        };
+
         let mut objects = vec![];
         let mut chains = vec![];
         let mut chain_pos = HashMap::new();
@@ -163,6 +172,7 @@ impl FumenDescription {
                 spawn_x, 
                 object.object_type,
                 pos, duration,
+                false,
             ));
 
             match object.object_type {
@@ -210,6 +220,7 @@ impl FumenDescription {
         );
 
         Fumen {
+            metadata,
             objects,
             chains,
             current: 0,

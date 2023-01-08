@@ -2,8 +2,19 @@ use bevy::prelude::*;
 use crate::objects::Object;
 use crate::chains::Chain;
 
-#[derive(Resource, Debug)]
+pub struct FumenMetadata {
+    /// song name
+    pub name: String,
+    pub artist: String,
+    pub charter: String,
+    pub bpm: f64,
+    pub difficulty: String,
+    pub level: u32,
+}
+
+#[derive(Resource)]
 pub struct Fumen {
+    pub metadata: FumenMetadata,
     pub objects: Vec<Object>,
     pub chains: Vec<Chain>,
     pub current: usize,

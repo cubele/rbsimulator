@@ -9,6 +9,7 @@ pub struct ObjTexture {
     pub top_obj: Handle<Image>,
     pub vertical_obj: Handle<Image>,
     pub chain: Handle<Image>,
+    pub glow: Handle<Image>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -30,6 +31,7 @@ pub struct Object {
     pub objtype: Objecttype,
     /// for long notes
     pub duration: Option<f64>,
+    pub chord: bool,
 }
 
 impl Object {
@@ -52,13 +54,14 @@ impl Object {
 
     pub fn new(spawn_time: f64, arrive_time: f64,
                spawn_x: f32, objtype: Objecttype, pos: u32,
-               duration: Option<f64>) -> Self {
+               duration: Option<f64>, chord: bool) -> Self {
         let object = Self {
             spawn_time, arrive_time,
             spawn: (spawn_x, SPAWN_POSITION).into(),
             pos, objtype,
             dest: Self::destination(objtype, pos),
             duration,
+            chord,
         };
         object
     }
@@ -69,10 +72,11 @@ fn load_object_texture(
     asset_server: Res<AssetServer>,
 ) {
     commands.insert_resource(ObjTexture{
-        red_obj: asset_server.load("images\\sad.png"),
-        top_obj: asset_server.load("images\\topobject.png"),
-        vertical_obj: asset_server.load("images\\sad2.png"),
+        red_obj: asset_server.load("images\\redobj.png"),
+        top_obj: asset_server.load("images\\topobj.png"),
+        vertical_obj: asset_server.load("images\\redvo.png"),
         chain: asset_server.load("images\\chain.png"),
+        glow: asset_server.load("images\\glow.png"),
     });
 }
 
@@ -93,12 +97,31 @@ fn spawn_objects(
                 Objecttype::Vertical => materials.vertical_obj.clone(),
                 Objecttype::Normal => materials.red_obj.clone(),
             };
-            commands.spawn(SpriteBundle {
-                texture,
-                transform,
+            let sprite = Sprite {
+                custom_size: Some(Vec2::new(OBJECT_SIZE, OBJECT_SIZE)),
                 ..default()
-            })
-            .insert(*object);
+            };
+            if object.chord {
+                commands.spawn(SpriteBundle {
+                    sprite,
+                    texture,
+                    transform,
+                    ..default()
+                }).with_children(|parent| {
+                    parent.spawn(SpriteBundle {
+                        texture: materials.glow.clone(),
+                        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.1)),
+                        ..default()
+                    });
+                }).insert(*object);
+            } else {
+                commands.spawn(SpriteBundle {
+                    sprite,
+                    texture,
+                    transform,
+                    ..default()
+                }).insert(*object);
+            }
             fumen.current += 1;
         } else {
             break;
@@ -121,7 +144,7 @@ fn move_objects(mut commands: Commands, time: Res<Time>,
                 sfx.justsound.clone(),
                 PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
             );
-            commands.entity(e).despawn();
+            commands.entity(e).despawn_recursive();
             continue;
         }
         (transform.translation.x, transform.translation.y) = 

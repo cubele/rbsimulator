@@ -133,8 +133,8 @@ pub fn INORI(asset_server: &AssetServer) -> Fumen {
             };
             let chained = if measure < 82 {
                 let rng = range_rng(0, 10);
-                if rng > 0 && rng < 4 {
-                    let rng = 2;
+                if rng > 0 && rng < 5 {
+                    let rng = rng;
                     chained_id.insert(id + rng, id);
                     Some(id + rng)
                 } else {
