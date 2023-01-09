@@ -74,5 +74,7 @@ pub const CHAIN_Z_DIFF: f32 = 1.0 / 100000.0;
 
 // audio
 pub const AUDIO_DELAY: f64 = 0.1;
-pub const VOLUME_SONG: f32 = 0.12;
+pub const VOLUME_SONG: f32 = 0.10;
 pub const VOLUME_SFX: f32 = 0.10;
+
+pub const HIGH_SPEED: f64 = 2.;

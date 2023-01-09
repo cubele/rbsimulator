@@ -4,6 +4,7 @@ mod fumengen;
 mod tests;
 mod utils;
 
+use fumengen::{parse::FumenDescription};
 pub use game::*;
 pub use fumengen::*;
 pub use utils::*;
@@ -35,6 +36,9 @@ fn main() {
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
-    let testfumen = tests::INORI(&asset_server);
+    let testfumen = FumenDescription::from_json(
+        "ここからよろしく大作戦143", "あさき隊", "黑猫"
+    ).unwrap()
+    .into_fumen(&asset_server);
     commands.insert_resource(testfumen);
 }

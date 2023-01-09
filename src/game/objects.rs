@@ -25,6 +25,7 @@ pub enum Objecttype {
     Normal,
     Vertical,
     Top,
+    Slide,
 }
 
 #[derive(Component, Clone, Copy, Debug)]
@@ -130,6 +131,9 @@ fn spawn_objects(
                 } else {
                     materials.red_obj.clone()
                 },
+                Objecttype::Slide => {
+                    unimplemented!();
+                }
             };
             let sprite = Sprite {
                 custom_size: Some(Vec2::new(OBJECT_SIZE, OBJECT_SIZE)),
@@ -147,6 +151,9 @@ fn spawn_objects(
                     Objecttype::Top => (materials.top_lo_mid.clone(), materials.top_lo_end.clone()),
                     Objecttype::Vertical => (materials.red_lo_mid.clone(), materials.red_lo_end.clone()),
                     Objecttype::Normal => (materials.red_lo_mid.clone(), materials.red_lo_end.clone()),
+                    Objecttype::Slide => {
+                        unimplemented!();
+                    }
                 };
                 let p1 = object.current_coord(time_now);
                 let p2 = object.current_coord(time_now - duration.min(0.15));
@@ -213,6 +220,7 @@ fn move_objects(
 ) {
     let time_now = time.elapsed_seconds_f64() - fumen.song_start_time;
     let time_last = time_now - time.delta_seconds_f64();
+    info!("delta time: {}", time.delta_seconds_f64());
     let mut played = false;
     for (e,
         mut transform,
@@ -259,7 +267,7 @@ fn move_objects(
                 (transform.translation.x, transform.translation.y) = (ex, ey);
                 transform.rotation = Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2 + angle);
             }
-            if time_now >= object.arrive_time + duration {
+            if time_last < object.arrive_time + duration && time_now >= object.arrive_time + duration {
                 if !played {
                     audio.play_with_settings(
                         sfx.justsound.clone(),
@@ -268,11 +276,10 @@ fn move_objects(
                     played = true;
                 }
                 commands.entity(e).despawn_recursive();
-                continue;
             }
         } else {
             // passed the judgement line
-            if time_now > object.arrive_time {
+            if time_last < object.arrive_time && time_now >= object.arrive_time {
                 if !played {
                     audio.play_with_settings(
                         sfx.justsound.clone(),
@@ -281,21 +288,24 @@ fn move_objects(
                     played = true;
                 }
                 commands.entity(e).despawn_recursive();
-                continue;
+            } else {
+                (transform.translation.x, transform.translation.y) = 
+                    object.current_coord(time_now).into();
             }
-            (transform.translation.x, transform.translation.y) = 
-                object.current_coord(time_now).into();
         }
     }
 
     // no elegant way to do it unless change overall design
     for (e, mut transform, object) in query_single.iter_mut() {
         // passed the judgement line
-        if time_now > object.arrive_time {
-            audio.play_with_settings(
-                sfx.justsound.clone(),
-                PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
-            );
+        if time_last < object.arrive_time && time_now >= object.arrive_time {
+            if !played {
+                audio.play_with_settings(
+                    sfx.justsound.clone(),
+                    PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
+                );
+                played = true;
+            }
             commands.entity(e).despawn_recursive();
             continue;
         }

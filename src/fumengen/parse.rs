@@ -6,18 +6,32 @@ use super::fumen::*;
 use bevy::prelude::*;
 use std::collections::HashMap;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ObjectDescription {
+    /// measure and beat will be used if starttime is None
     pub measure: u32,
     pub beat: f64,
+    /// spawn time in ms, will be parsed before using measure and beat
+    pub starttime: Option<f64>,
+    pub flytime: Option<f64>,
     /// Normal, Top, Vertical
     pub object_type: Objecttype,
     /// for long objects
     pub duration: Option<f64>,
     /// for top or vertical objects
+    /// TODO: setted Normal Objects
     pub pos: Option<u32>,
     /// stores id of next chained object
     pub chained: Option<u32>
+}
+
+impl ObjectDescription {
+    pub fn arrive_time(&self) -> f64 {
+        match self.starttime {
+            Some(time) => time + self.flytime.unwrap_or(0.0),
+            None => 0.0
+        }
+    }
 }
 
 /// This should be parsed from a file, then converted to the inner Fumen struct
@@ -38,11 +52,12 @@ fn seconds_from_beat(measure: u32, beat: f64, bpm: f64, delay: f64) -> f64 {
 
 impl FumenDescription {
     /// Need to make sure the ObjectDescription vector is sorted by spawn time
-    pub fn into_fumen(self, asset_server: &AssetServer) -> Fumen {
+    pub fn into_fumen(mut self, asset_server: &AssetServer) -> Fumen {
         let delay = self.delay;
         let audio_path = format!("..\\fumens\\{}\\song.ogg", self.name);
         let song_audio = asset_server.load(audio_path);
         let bpm: f64 = self.bpm;
+        info!("bpm: {}", bpm);
 
         let metadata = FumenMetadata {
             name: self.name,
@@ -64,12 +79,26 @@ impl FumenDescription {
         // Stores occupations, scanning line method
         let mut occupy_events = vec![];
 
+        // calculate spawntime and flytime if none is provided
+        for object in self.objects.iter_mut() {
+            if object.starttime.is_none() {
+                let (measure, beat) = (object.measure, object.beat);
+                let arrive_time = seconds_from_beat(measure, beat, bpm, delay);
+                let spawn_time = arrive_time - OBJ_TIME;
+                object.starttime = Some(spawn_time);
+                object.flytime = Some(arrive_time - spawn_time);
+            }
+            object.starttime = object.starttime.map(|x| x + delay);
+            let new_speed = object.flytime.map(|x| x / HIGH_SPEED);
+            object.starttime = object.starttime.map(|x| x + object.flytime.unwrap() - new_speed.unwrap());
+            object.flytime = new_speed;
+        }
+
         // To avoid conflicts of future VOs
         let mut vo_times = vec![];
         for object in self.objects.iter() {
             if object.object_type == Objecttype::Vertical {
-                let (measure, beat) = (object.measure, object.beat);
-                let arrive_time = seconds_from_beat(measure, beat, bpm, delay);
+                let arrive_time = object.arrive_time();
                 let pos = object.pos.unwrap();
                 let duration = object.duration.map(|x| seconds_from_beat(0, x, bpm, 0.));
                 vo_times.push((arrive_time, pos));
@@ -81,12 +110,11 @@ impl FumenDescription {
         // enumerate in order of spawn time
         for (id, object) in self.objects.iter().enumerate() {
             let id = id as u32;
-            let (measure, beat) = (object.measure, object.beat);
-            let arrive_time = seconds_from_beat(measure, beat, bpm, delay);
-            let spawn_time = arrive_time - OBJ_TIME;
             let mut pos;
             let mut spawn_x;
-            let duration = object.duration.map(|x| seconds_from_beat(0, x, bpm, 0.));
+            let duration = object.duration;
+            let spawn_time = object.starttime.unwrap();
+            let arrive_time = object.arrive_time();
 
             // handle occured occupy events, only unoccupy events in here
             occupy_events.retain(|(time, pos, val)| {
@@ -113,7 +141,7 @@ impl FumenDescription {
                 Objecttype::Normal => {
                     pos = range_rng(0, BOTTOM_SLOT_COUNT - 1);
                     if occupied.iter().position(|x| *x == 0).is_none() {
-                        error!("No available slots for normal object, overlap@ measure{} beat{}!", measure, beat);
+                        error!("No available slots for normal object, overlap@ time{:?}!", arrive_time);
                     } else {
                         while occupied[pos as usize] > 0 {
                             pos = range_rng(0, BOTTOM_SLOT_COUNT - 1);
@@ -131,14 +159,9 @@ impl FumenDescription {
                     pos = object.pos.unwrap();
                     spawn_x = BOTTOM_SLOT_START_X + BOTTOM_SLOT_SPACING * pos as f32;
                 },
-            }
-
-            // handle chained positions
-            if let Some(chainedpos) = chain_pos.get(&id) {
-                pos = *chainedpos;
-            }
-            if let Some(chainedspawn) = chain_spawn.get(&id) {
-                spawn_x = *chainedspawn;
+                Objecttype::Slide => {
+                    unimplemented!();
+                }
             }
 
             // generate position for start of chain
@@ -153,8 +176,7 @@ impl FumenDescription {
                         }
                     }
                     let endobject = self.objects.get(next as usize).unwrap();
-                    let (emeasure, ebeat) = (endobject.measure, endobject.beat);
-                    let end_time = seconds_from_beat(emeasure, ebeat, bpm, delay);
+                    let end_time = endobject.arrive_time();
 
                     let mut vo_occupied = [0; BOTTOM_SLOT_COUNT as usize];
                     for (ntime, pos) in vo_times.iter() {
@@ -164,7 +186,7 @@ impl FumenDescription {
                         }
                     }
                     if occupied.iter().zip(vo_occupied.iter()).position(|(x, y)| *x + *y == 0).is_none() {
-                        error!("No available slots for chain, overlap@ measure{} beat{}!", measure, beat);
+                        error!("No available slots for normal object, overlap@ time{:?}!", arrive_time);
                     } else {
                         while occupied[pos as usize] + vo_occupied[pos as usize] > 0 {
                             pos = range_rng(0, BOTTOM_SLOT_COUNT - 1);
@@ -186,7 +208,7 @@ impl FumenDescription {
                         }
                     }
                     if occupied.iter().zip(vo_occupied.iter()).position(|(x, y)| *x + *y == 0).is_none() {
-                        error!("No available slots for chain, overlap@ measure{} beat{}!", measure, beat);
+                        error!("No available slots for normal object, overlap@ time{:?}!", arrive_time);
                     } else {
                         while occupied[pos as usize] + vo_occupied[pos as usize] > 0 {
                             pos = range_rng(0, BOTTOM_SLOT_COUNT - 1);
@@ -195,17 +217,25 @@ impl FumenDescription {
                 }
             }
 
+            // handle chained positions
+            if let Some(chainedpos) = chain_pos.get(&id) {
+                pos = *chainedpos;
+            }
+            if let Some(chainedspawn) = chain_spawn.get(&id) {
+                spawn_x = *chainedspawn;
+            }
+
             // is it a chord?
             let chord = {
                 let chord_last = if id == 0 {
                     false
                 } else {
                     let last_object = self.objects.get(id as usize - 1).unwrap();
-                    last_object.measure == measure && last_object.beat == beat
+                    (last_object.arrive_time() - arrive_time).abs() < 1e-10
                 };
                 let chord_next = 
                 if let Some(next_object) = self.objects.get(id as usize + 1) {
-                    next_object.measure == measure && next_object.beat == beat
+                    (next_object.arrive_time() - arrive_time).abs() < 1e-10
                 } else {
                     false
                 };
@@ -248,7 +278,7 @@ impl FumenDescription {
                 if object.object_type != Objecttype::Top {
                     occupied[pos as usize] += 1;
                     let nobject = &self.objects[next as usize];
-                    let ntime = seconds_from_beat(nobject.measure, nobject.beat, bpm, delay);
+                    let ntime = nobject.arrive_time();
                     occupy_events.push(
                         (ntime + occupy_duration, pos, -1)
                     );
