@@ -1,5 +1,7 @@
-use crate::objects::*;
+use super::objects::*;
 use bevy::prelude::*;
+use crate::fumen::Fumen;
+use super::consts::*;
 
 #[derive(Component, Clone, Copy, Debug)]
 /// Objects in the chain should have the same spawn coord and dest coord
@@ -16,8 +18,7 @@ impl Chain {
     }
 }
 
-use crate::fumen::Fumen;
-use crate::consts::*;
+/// chains aren't implemented as child of notes because they need information of the next node
 pub fn spawn_chains(
     mut commands: Commands,
     mut fumen: ResMut<Fumen>,

@@ -1,6 +1,7 @@
 use bevy::prelude::*;
-use crate::consts::*;
-use crate::coords::Coord2d;
+use super::consts::*;
+use super::coords::Coord2d;
+use super::sfx::SoundFX;
 
 /// Keeps the textures and materials
 #[derive(Resource)]
@@ -201,7 +202,6 @@ fn spawn_objects(
     }
 }
 
-use crate::sfx::SoundFX;
 /// also plays sfx for lower latency
 fn move_objects(
     mut commands: Commands, time: Res<Time>,
@@ -304,7 +304,7 @@ fn move_objects(
     }
 }
 
-use crate::chains::*;
+use super::chains::*;
 pub struct ObjectsPlugin;
 impl Plugin for ObjectsPlugin {
     fn build(&self, app: &mut App) {

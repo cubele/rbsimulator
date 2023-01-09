@@ -1,20 +1,15 @@
-use bevy::prelude::*;
-
-mod objects;
-mod chains;
-#[allow(dead_code)]
-mod consts;
-mod fumen;
-mod ui;
-mod utils;
-mod coords;
-mod sfx;
-mod audio;
-mod parse;
+mod game;
+mod fumengen;
 #[allow(non_snake_case, dead_code, unused)]
 mod tests;
+mod utils;
 
-use consts::*;
+pub use game::*;
+pub use fumengen::*;
+pub use utils::*;
+
+use bevy::prelude::*;
+use game::consts::*;
 
 fn main() {
     let defaultplugins = DefaultPlugins.set(WindowPlugin {

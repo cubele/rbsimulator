@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::fumen::Fumen;
-use crate::consts::*;
+use super::consts::*;
 
 // TODO: try starting from given time
 // TODO: make this only execute once

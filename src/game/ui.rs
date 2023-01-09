@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::consts::*;
+use super::consts::*;
 use crate::fumen::Fumen;
 
 /// This shit is too annoying so I hardcoded most of it

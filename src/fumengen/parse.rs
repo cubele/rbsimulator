@@ -1,8 +1,8 @@
 use crate::objects::*;
-use crate::fumen::*;
 use crate::consts::*;
 use crate::chains::*;
 use crate::utils::range_rng;
+use super::fumen::*;
 use bevy::prelude::*;
 use std::collections::HashMap;
 
