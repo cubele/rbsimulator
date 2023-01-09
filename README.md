@@ -20,7 +20,7 @@ TODO: packaged version
 - [ ] precise RB physics
 - [x] precise RB fumen generation
 - [x] better UI
-- [ ] BMS/PLY parser
+- [x] PLY parser(PLY->JSON->fumen)
 - [ ] game menu/song selection
 - [ ] Fumen maker and better preview
 - [ ] actually be able to play
