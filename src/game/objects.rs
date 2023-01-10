@@ -31,6 +31,7 @@ pub enum Objecttype {
 pub struct Object {
     pub spawn_time: f64,
     pub arrive_time: f64,
+    pub reflec_time: f64,
     pub spawn: Coord2d,
     pub dest: Coord2d,
     /// if not None, travels spawn->reflect->dest
@@ -70,23 +71,12 @@ impl Object {
     }
 
     pub fn reflec_time(&self) -> f64 {
-        if let Some(reflec) = self.reflect {
-            let d1 = reflec.distance(&self.spawn);
-            let d2 = reflec.distance(&self.dest);
-            (d1 / (d1 + d2)) as f64 * (self.arrive_time - self.spawn_time) + self.spawn_time
-        } else {
-            0.
-        }
+        self.reflec_time
     }
 
     pub fn reflect_stage(&self, time: f64) -> Option<u32> {
-        if self.reflect.is_some() {
-            let rtime = self.reflec_time();
-            if time < rtime {
-                Some(0)
-            } else {
-                Some(1)
-            }
+        if time < self.reflec_time() {
+            Some(0)
         } else {
             Some(1)
         }
@@ -111,12 +101,23 @@ impl Object {
     pub fn new(spawn_time: f64, arrive_time: f64, side: u32,
                spawn_x: f32, spawn_y: f32, objtype: Objecttype, pos: u32,
                reflect: Option<(f32, f32)>, duration: Option<f64>, chord: bool) -> Self {
+        let spawn = (spawn_x, spawn_y).into();
+        let dest = Self::destination(objtype, pos, side);
+        let reflect : Option<Coord2d>= reflect.map(|(x, y)| (x, y).into());
+        let reflec_time = if let Some(reflec) = reflect {
+            let d1 = reflec.distance(&spawn);
+            let d2 = reflec.distance(&dest);
+            (d1 / (d1 + d2)) as f64 * (arrive_time - spawn_time) + spawn_time
+        } else {
+            0.
+        };
         let object = Self {
             spawn_time, arrive_time, side,
-            spawn: (spawn_x, spawn_y).into(),
+            reflec_time,
+            spawn,
             objtype,
-            dest: Self::destination(objtype, pos, side),
-            reflect: reflect.map(|(x, y)| (x, y).into()),
+            dest,
+            reflect,
             duration,
             chord,
         };

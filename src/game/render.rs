@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, sprite};
 use super::consts::*;
 use super::sfx::SoundFX;
 use super::objects::*;
@@ -28,6 +28,9 @@ pub struct LoMid;
 
 #[derive(Component)]
 pub struct LoEnd;
+
+#[derive(Component)]
+pub struct ChordGlow;
 
 use crate::fumen::Fumen;
 pub fn spawn_objects(
@@ -111,13 +114,17 @@ pub fn spawn_objects(
                 });
             }
             if object.chord {
+                let sprite = Sprite {
+                    custom_size: Some(Vec2::new(OBJECT_SIZE * 1.1, OBJECT_SIZE * 1.1)),
+                    ..default()
+                };
                 e.add_children(|parent| {
                     parent.spawn(SpriteBundle {
                         sprite: sprite.clone(),
                         texture: materials.glow.clone(),
                         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.1)),
                         ..default()
-                    });
+                    }).insert(ChordGlow);
                 });
             }
             e.insert(*object);
@@ -148,6 +155,7 @@ pub fn move_objects(
 ) {
     let time_now = time.elapsed_seconds_f64() - fumen.song_start_time;
     let time_last = time_now - time.delta_seconds_f64();
+    // info!("delta time: {:?}", time.delta_seconds_f64());
     let mut played = false;
     for (e,
         mut transform,
@@ -268,4 +276,5 @@ pub fn move_objects(
                 object.current_coord(time_now).into();
         }
     }
+    // info!("size: {:?}", query.iter().len() + query_single.iter().len());
 }
