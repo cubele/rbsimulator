@@ -17,14 +17,15 @@ TODO: packaged version
 - [ ] SO
 - [x] LO
 - [x] chords
-- [ ] precise RB physics
-- [x] precise RB fumen generation
+- [x] precise RB physics(?)
+- [x] precise RB fumen generation(?)
 - [x] better UI
 - [x] PLY parser(PLY->JSON->fumen)
-- [ ] game menu/song selection
-- [ ] Fumen maker and better preview
-- [ ] actually be able to play
-- [ ] investigate latency and performance
+- [ ] preview slider
+- [ ] menu/song selection
+- [ ] Fumen maker
+- [ ] be able to play
+- [ ] latency and performance
 
 ## references
 [Be-Music Script Format](https://fileformats.fandom.com/wiki/Be-Music_Script)

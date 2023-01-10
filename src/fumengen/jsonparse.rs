@@ -1,4 +1,4 @@
-use bevy::prelude::{error, info};
+use bevy::prelude::{error};
 use serde::{Serialize, Deserialize};
 use serde_json::Value;
 use super::parse::{FumenDescription, ObjectDescription};
@@ -64,6 +64,8 @@ pub struct JsonFumen {
     numgeneratednotes: u32,
     numsopoints: u32,
     notes: Vec<Value>,
+    bpmchanges: Vec<Value>,
+    sopoints: Vec<Value>,
 }
 
 const MS_PER_SEC: f64 = 1000.;
@@ -79,7 +81,6 @@ impl FumenDescription {
     /// 8: Chained 2: Top & Long & Sim
     /// TODO: 啥是SIM？
     /// VO判断：没有isset，不是top并且position不是-1
-    /// TODO: check if notes are sorted by arrival time
     pub fn from_json(
         name: &str, artist: &str, charter: &str
     ) -> Result<Self, ParseError> {
@@ -96,7 +97,7 @@ impl FumenDescription {
             let starttime: i32 = get_val(object, "starttime") as i32;
             let flytime: u32 = get_val(object, "flytime") as u32;
             let id: u32 = get_val(object, "id") as u32;
-            let source: u32 = get_val(object, "source") as u32;
+            let source: i32 = get_val(object, "source") as i32;
             let side: u32 = get_val(object, "side") as u32;
             let istop: u32 = get_val(object, "istop") as u32;
             let objtype: u32 = get_val(object, "type") as u32;
@@ -106,11 +107,9 @@ impl FumenDescription {
             let magic: u32 = get_val(object, "magicnumber") as u32;
             let chainlast: i32 = get_val(object, "chainlastid") as i32;
             let chainnext: i32 = get_val(object, "chainnextid") as i32;
-
-            // TODO: parse blue side
-            if side != 0 {
-                continue;
-            }
+            let numreflectnotes = get_val(object, "numreflectnotes") as i32;
+            let reflectnotes = &object["reflectnotes"];
+            let sametimereflects = get_val(object, "numalsoreflectednotes") as i32;
 
             let object_type = parse_objtype(objtype, istop, isset, position);
 
@@ -144,27 +143,35 @@ impl FumenDescription {
             } else {
                 None
             };
+            let source = if source == -1 {
+                None
+            } else {
+                Some(source as u32)
+            };
 
             let objdesc = ObjectDescription {
-                // not used here
-                measure: 0, beat: 0.,
-                starttime: Some(starttime as f64 / MS_PER_SEC),
-                flytime: Some(flytime as f64 / MS_PER_SEC),
+                starttime: starttime as f64 / MS_PER_SEC,
+                flytime: flytime as f64 / MS_PER_SEC,
                 object_type, duration, pos,
-                chained,
+                generated_pos: None,
+                chained, source, side,
             };
             objects.push(objdesc);
+            // since some objects may be omitted(Slides), we have to keep track of the actual id
             idtranslate.insert(id as u32, objects.len() - 1);
         }
         for object in objects.iter_mut() {
             object.chained = object.chained.map(|id| *idtranslate.get(&id).unwrap() as u32);
+            object.source = object.source.map(|id| *idtranslate.get(&id).unwrap() as u32);
         }
         Ok(FumenDescription {
             name: name.to_string(),
             artist: artist.to_string(),
             charter: charter.to_string(),
+            level: 1,
+            difficulty: "Normal".to_string(),
             // TODO: change to range
-            bpm: content.startbpm,
+            bpm: vec![content.startbpm],
             delay: -0.22,
             objects,
         })

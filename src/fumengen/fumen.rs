@@ -7,7 +7,8 @@ pub struct FumenMetadata {
     pub name: String,
     pub artist: String,
     pub charter: String,
-    pub bpm: f64,
+    /// range
+    pub bpm: String,
     pub difficulty: String,
     pub level: u32,
 }

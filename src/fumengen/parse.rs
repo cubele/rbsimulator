@@ -1,3 +1,4 @@
+use crate::coords::*;
 use crate::objects::*;
 use crate::consts::*;
 use crate::chains::*;
@@ -8,29 +9,27 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct ObjectDescription {
-    /// measure and beat will be used if starttime is None
-    pub measure: u32,
-    pub beat: f64,
     /// spawn time in ms, will be parsed before using measure and beat
-    pub starttime: Option<f64>,
-    pub flytime: Option<f64>,
-    /// Normal, Top, Vertical
+    pub starttime: f64,
+    pub flytime: f64,
+    /// Normal, Top, Vertical, Slide
     pub object_type: Objecttype,
     /// for long objects
     pub duration: Option<f64>,
-    /// for top or vertical objects
-    /// TODO: setted Normal Objects
+    /// for top or vertical objects or set objects
     pub pos: Option<u32>,
+    /// pos after generation
+    pub generated_pos: Option<u32>,
     /// stores id of next chained object
-    pub chained: Option<u32>
+    pub chained: Option<u32>,
+    /// source of reflected object
+    pub source: Option<u32>,
+    pub side: u32
 }
 
 impl ObjectDescription {
     pub fn arrive_time(&self) -> f64 {
-        match self.starttime {
-            Some(time) => time + self.flytime.unwrap_or(0.0),
-            None => 0.0
-        }
+        self.starttime + self.flytime
     }
 }
 
@@ -40,7 +39,9 @@ pub struct FumenDescription {
     pub name: String,
     pub artist: String,
     pub charter: String,
-    pub bpm: f64,
+    pub level: u32,
+    pub difficulty: String,
+    pub bpm: Vec<f64>,
     pub delay: f64,
     pub objects: Vec<ObjectDescription>,
 }
@@ -50,100 +51,238 @@ fn seconds_from_beat(measure: u32, beat: f64, bpm: f64, delay: f64) -> f64 {
     seconds_per_measure * measure as f64 + seconds_per_measure * beat + delay
 }
 
+// avoid generating in the same position for adjacent notes in this beat window
+const AVOID_WINDOW: f64 = 0.5;
 impl FumenDescription {
+    pub fn objects_valid(&self) -> bool {
+        let mut prev_time = -1e9;
+        for object in self.objects.iter() {
+            if object.arrive_time() < prev_time - 1e-8 {
+                error!("object arrive time not in order: {:?} < {:?}", object.arrive_time(), prev_time);
+                return false;
+            }
+            prev_time = object.arrive_time();
+        }
+        true
+    }
+
+    pub fn next_object_pos(&self, id: u32) -> Vec<Option<u32>> {
+        let objectnow = self.objects.get(id as usize).unwrap();
+        let arrive_time = objectnow.arrive_time();
+        let mut next_arrive_time = None;
+        for object in self.objects.iter() {
+            if objectnow.side == object.side && object.arrive_time() > arrive_time + 1e-12 {
+                next_arrive_time = Some(object.arrive_time());
+                break;
+            }
+        }
+        let mut next_pos = vec![];
+        if !next_arrive_time.is_some() ||
+            next_arrive_time.unwrap() - arrive_time > 
+            seconds_from_beat(0, AVOID_WINDOW, self.bpm[0], 0.) {
+            return next_pos;
+        }
+        for object in self.objects.iter() {
+            if objectnow.side == object.side && 
+                (object.arrive_time() - next_arrive_time.unwrap()).abs() < 1e-12 && 
+                object.object_type != Objecttype::Top {
+                next_pos.push(object.pos);
+            }
+        }
+        next_pos
+    }
+
+    // objects of the last time window and the chorded ones
+    fn last_object_pos(&self, id: u32, generated_pos: &Vec<u32>) -> Vec<Option<u32>> {
+        let objectnow = self.objects.get(id as usize).unwrap();
+        let arrive_time = objectnow.arrive_time();
+        let mut last_arrive_time = None;
+        for object in self.objects.iter() {
+            if objectnow.side == object.side && object.arrive_time() < arrive_time - 1e-12 {
+                last_arrive_time = Some(object.arrive_time());
+            }
+        }
+        let mut last_pos = vec![];
+        // chorded
+        for (id, object )in self.objects.iter().enumerate() {
+            if objectnow.side == object.side && 
+                (object.arrive_time() - arrive_time).abs() < 1e-12 && 
+                object.object_type != Objecttype::Top && 
+                id < generated_pos.len() {
+                last_pos.push(Some(generated_pos[id]));
+            }
+        }
+        if !last_arrive_time.is_some() ||
+            arrive_time - last_arrive_time.unwrap() > 
+            seconds_from_beat(0, AVOID_WINDOW, self.bpm[0], 0.) {
+            return last_pos;
+        }
+        for (id, object )in self.objects.iter().enumerate() {
+            if objectnow.side == object.side && 
+                (object.arrive_time() - last_arrive_time.unwrap()).abs() < 1e-12 && 
+                object.object_type != Objecttype::Top {
+                last_pos.push(Some(generated_pos[id]));
+            }
+        }
+        last_pos
+    }
+
+    // because LO ending dosen't correspond to an object
+    pub fn next_object_pos_raw(&self, arrive_time: f64, side: u32) -> Vec<Option<u32>> {
+        let mut next_arrive_time = None;
+        for object in self.objects.iter() {
+            if side == object.side && object.arrive_time() > arrive_time + 1e-12 {
+                next_arrive_time = Some(object.arrive_time());
+                break;
+            }
+        }
+        let mut next_pos = vec![];
+        if !next_arrive_time.is_some() ||
+            next_arrive_time.unwrap() - arrive_time > 
+            seconds_from_beat(0, AVOID_WINDOW, self.bpm[0], 0.) {
+            return next_pos;
+        }
+        for object in self.objects.iter() {
+            if side == object.side && 
+                (object.arrive_time() - next_arrive_time.unwrap()).abs() < 1e-12 && 
+                object.object_type != Objecttype::Top {
+                next_pos.push(object.pos);
+            }
+        }
+        next_pos
+    }
+
+    pub fn last_object_id(&self, id: u32) -> Option<u32> {
+        for i in (0..id).rev() {
+            let object = &self.objects[i as usize];
+            if object.side == self.objects[id as usize].side {
+                return Some(i);
+            }
+        }
+        None
+    }
+
+    pub fn next_object_id(&self, id: u32) -> Option<u32> {
+        for i in (id + 1)..self.objects.len() as u32 {
+            let object = &self.objects[i as usize];
+            if object.side == self.objects[id as usize].side {
+                return Some(i);
+            }
+        }
+        None
+    }
+
     /// Need to make sure the ObjectDescription vector is sorted by spawn time
-    pub fn into_fumen(mut self, asset_server: &AssetServer) -> Fumen {
+    pub fn into_fumen(&mut self, asset_server: &AssetServer) -> Fumen {
+        // ensure objects are sorted by arrive time
+        if !self.objects_valid() {
+            panic!("Objects are not sorted by arrive time!");
+        }
         let delay = self.delay;
+        for object in self.objects.iter_mut()  {
+            object.starttime += delay;
+        }
+
         let audio_path = format!("..\\fumens\\{}\\song.ogg", self.name);
         let song_audio = asset_server.load(audio_path);
-        let bpm: f64 = self.bpm;
-        info!("bpm: {}", bpm);
-
-        let metadata = FumenMetadata {
-            name: self.name,
-            artist: self.artist,
-            charter: self.charter,
-            bpm: bpm,
-            difficulty: "Normal".to_string(),
-            level: 1,
+        let bpm: f64 = self.bpm[0];
+        let (minbpm, maxbpm) = {
+            let mut minbpm = bpm;
+            let mut maxbpm = bpm;
+            for bpm in self.bpm.iter() {
+                if *bpm < minbpm {
+                    minbpm = *bpm;
+                }
+                if *bpm > maxbpm {
+                    maxbpm = *bpm;
+                }
+            }
+            (minbpm, maxbpm)
         };
 
-        let mut objects = vec![];
+        let metadata = FumenMetadata {
+            name: self.name.clone(),
+            artist: self.artist.clone(),
+            charter: self.charter.clone(),
+            bpm: format!("{}-{}", minbpm, maxbpm),
+            difficulty: self.difficulty.clone(),
+            level: self.level,
+        };
+
+        let mut objects : Vec<Object>= vec![];
         let mut chains = vec![];
         let mut chain_pos = HashMap::new();
         let mut chain_prev = HashMap::new();
         let mut chain_spawn = HashMap::new();
 
-        let occupy_duration = seconds_from_beat(0, 1.0 / 16.0, bpm, 1e-12);
-        let mut occupied = [0; BOTTOM_SLOT_COUNT as usize];
-        // Stores occupations, scanning line method
-        let mut occupy_events = vec![];
-
-        // calculate spawntime and flytime if none is provided
-        for object in self.objects.iter_mut() {
-            if object.starttime.is_none() {
-                let (measure, beat) = (object.measure, object.beat);
-                let arrive_time = seconds_from_beat(measure, beat, bpm, delay);
-                let spawn_time = arrive_time - OBJ_TIME;
-                object.starttime = Some(spawn_time);
-                object.flytime = Some(arrive_time - spawn_time);
-            }
-            object.starttime = object.starttime.map(|x| x + delay);
-            let new_speed = object.flytime.map(|x| x / HIGH_SPEED);
-            object.starttime = object.starttime.map(|x| x + object.flytime.unwrap() - new_speed.unwrap());
-            object.flytime = new_speed;
-        }
+        // both sides are parsed together since they depend on each other for refleced objects
+        let mut occupied = [[0; BOTTOM_SLOT_COUNT as usize], [0; BOTTOM_SLOT_COUNT as usize]];
+        // Stores occupations for previous chains and LOs, scanning line method
+        // (timestamp, pos, delta) -> occupy[pos] += delta after timestamp
+        let mut occupy_events = [vec![], vec![]];
 
         // To avoid conflicts of future VOs
-        let mut vo_times = vec![];
+        // LONG VO duration dosen't matter here since it's only for future VOs
+        let mut vo_times = [vec![], vec![]];
         for object in self.objects.iter() {
             if object.object_type == Objecttype::Vertical {
                 let arrive_time = object.arrive_time();
                 let pos = object.pos.unwrap();
-                let duration = object.duration.map(|x| seconds_from_beat(0, x, bpm, 0.));
-                vo_times.push((arrive_time, pos));
-                occupy_events.push((arrive_time + occupy_duration + duration.unwrap_or(0.), pos, -1));
-                occupy_events.push((arrive_time - occupy_duration, pos, 1));
+                vo_times[object.side as usize].push((arrive_time, pos));
             }
         }
 
+        let mut generated_pos = vec![];
+        let mut reflect_pos = HashMap::new();
+
         // enumerate in order of spawn time
         for (id, object) in self.objects.iter().enumerate() {
+            // LO endings occupy for this duration, may not be accurate
+            let occupy_duration = seconds_from_beat(0, AVOID_WINDOW, bpm, 1e-12);
+
             let id = id as u32;
             let mut pos;
             let mut spawn_x;
+            let mut spawn_y = SPAWN_Y_POSITION;
             let duration = object.duration;
-            let spawn_time = object.starttime.unwrap();
+            let spawn_time = object.starttime;
             let arrive_time = object.arrive_time();
+            let side = object.side as usize;
+            let objtype = object.object_type;
 
             // handle occured occupy events, only unoccupy events in here
-            occupy_events.retain(|(time, pos, val)| {
+            occupy_events[side].retain(|(time, pos, val)| {
                 if *time < arrive_time {
-                    occupied[*pos as usize] += val;
-                    false
-                } else {
-                    true
-                }
-            });
-            // handle future vo occuping events
-            vo_times.retain(|(ntime, pos)| {
-                if *ntime - occupy_duration < arrive_time {
-                    occupied[*pos as usize] += 1;
-                    occupy_events.push((*ntime + occupy_duration, *pos, -1));
+                    occupied[side][*pos as usize] += val;
                     false
                 } else {
                     true
                 }
             });
             
-            // generate position without considering chains
-            match object.object_type {
+            // ========================== position generation ==========================
+
+            // generate position without considering chains or LO or VO
+            match objtype {
                 Objecttype::Normal => {
+                    // avoid next VOs
+                    let mut adj_occupied = [0; BOTTOM_SLOT_COUNT as usize];
+                    for pos in self.next_object_pos(id) {
+                        if let Some(pos) = pos {
+                            adj_occupied[pos as usize] += 1;
+                        }
+                    }
+                    // avoid previous objects
+                    for pos in self.last_object_pos(id, &generated_pos) {
+                        if let Some(pos) = pos {
+                            adj_occupied[pos as usize] += 1;
+                        }
+                    }
                     pos = range_rng(0, BOTTOM_SLOT_COUNT - 1);
-                    if occupied.iter().position(|x| *x == 0).is_none() {
+                    if occupied[side].iter().zip(adj_occupied.iter()).position(|(x, y)| *x + *y == 0).is_none() {
                         error!("No available slots for normal object, overlap@ time{:?}!", arrive_time);
                     } else {
-                        while occupied[pos as usize] > 0 {
+                        while occupied[side][pos as usize] + adj_occupied[pos as usize] > 0 {
                             pos = range_rng(0, BOTTOM_SLOT_COUNT - 1);
                         }
                     }
@@ -167,7 +306,7 @@ impl FumenDescription {
             // generate position for start of chain
             if let Some(mut next) = object.chained {
                 // start of chain, make sure future chain dosen't overlap with verticals
-                if object.object_type == Objecttype::Normal && chain_pos.get(&id).is_none() {
+                if objtype == Objecttype::Normal && chain_pos.get(&id).is_none() {
                     while let Some(nobject) = self.objects.get(next as usize) {
                         if let Some(nnext) = nobject.chained {
                             next = nnext;
@@ -179,108 +318,174 @@ impl FumenDescription {
                     let end_time = endobject.arrive_time();
 
                     let mut vo_occupied = [0; BOTTOM_SLOT_COUNT as usize];
-                    for (ntime, pos) in vo_times.iter() {
-                        if *ntime < end_time + occupy_duration &&
-                            *ntime > arrive_time - occupy_duration {
+                    // VOs during the chain
+                    for (ntime, pos) in vo_times[side].iter() {
+                        if *ntime <= end_time &&
+                            *ntime >= arrive_time {
                             vo_occupied[*pos as usize] += 1;
                         }
                     }
-                    if occupied.iter().zip(vo_occupied.iter()).position(|(x, y)| *x + *y == 0).is_none() {
+                    // the next objects of end of chain
+                    for pos in self.next_object_pos(next) {
+                        if let Some(pos) = pos {
+                            vo_occupied[pos as usize] += 1;
+                        }
+                    }
+                    // sum of previous occupy and future VO occupy
+                    if occupied[side].iter().zip(vo_occupied.iter()).position(|(x, y)| *x + *y == 0).is_none() {
                         error!("No available slots for normal object, overlap@ time{:?}!", arrive_time);
                     } else {
-                        while occupied[pos as usize] + vo_occupied[pos as usize] > 0 {
+                        while occupied[side][pos as usize] + vo_occupied[pos as usize] > 0 {
                             pos = range_rng(0, BOTTOM_SLOT_COUNT - 1);
                         }
                     }
                 }
             }
 
+            // generate position for LO, which can't be the start of a chain
             if let Some(duration) = duration {
-                // generate position for LO
-                if object.object_type == Objecttype::Normal {
+                if objtype == Objecttype::Normal {
+                    // works the same as chains
                     let end_time = arrive_time + duration;
-
                     let mut vo_occupied = [0; BOTTOM_SLOT_COUNT as usize];
-                    for (ntime, pos) in vo_times.iter() {
-                        if *ntime < end_time + occupy_duration &&
-                            *ntime > arrive_time - occupy_duration {
+                    for (ntime, pos) in vo_times[side].iter() {
+                        if *ntime <= end_time &&
+                            *ntime >= arrive_time {
                             vo_occupied[*pos as usize] += 1;
                         }
                     }
-                    if occupied.iter().zip(vo_occupied.iter()).position(|(x, y)| *x + *y == 0).is_none() {
+                    for pos in self.next_object_pos_raw(
+                        end_time, side as u32
+                    ) {
+                        if let Some(pos) = pos {
+                            vo_occupied[pos as usize] += 1;
+                        }
+                    }
+                    if occupied[side].iter().zip(vo_occupied.iter()).position(|(x, y)| *x + *y == 0).is_none() {
                         error!("No available slots for normal object, overlap@ time{:?}!", arrive_time);
                     } else {
-                        while occupied[pos as usize] + vo_occupied[pos as usize] > 0 {
+                        while occupied[side][pos as usize] + vo_occupied[pos as usize] > 0 {
                             pos = range_rng(0, BOTTOM_SLOT_COUNT - 1);
                         }
                     }
                 }
             }
 
-            // handle chained positions
+            // handle chained positions last, overwrites previous results
             if let Some(chainedpos) = chain_pos.get(&id) {
                 pos = *chainedpos;
             }
-            if let Some(chainedspawn) = chain_spawn.get(&id) {
-                spawn_x = *chainedspawn;
+
+            generated_pos.push(pos);
+
+            // ========================== spawn position and reflect generation ==========================
+
+            let mut reflect: Option<(f32, f32)> = None;
+
+            // assume all notes aren't missed
+            if let Some(source) = object.source {
+                let sourceobj = objects.get(source as usize).unwrap();
+                (spawn_x, spawn_y) = sourceobj.dest.into();
+                // generated tops donsen't reflect
+                if objtype != Objecttype::Top {
+                    if let Some((rx, ry)) = reflect_pos.get(&source) {
+                        reflect = Some((*rx, *ry));
+                    } else {
+                        // TODO: check if the distribution is actually this
+                        let reflec_y = range_rng(REFLECT_Y_MIN, REFLECT_Y_MAX);
+                        let dest = Object::destination(objtype, pos, side as u32);
+                        // choose the shortest path
+                        let p1: Coord2d = (REFLECT_X_LEFT, reflec_y).into();
+                        let p2: Coord2d = (REFLECT_X_RIGHT, reflec_y).into();
+                        let d1 = p1.distance(&(spawn_x, spawn_y).into()) + p1.distance(&dest);
+                        let d2 = p2.distance(&(spawn_x, spawn_y).into()) + p2.distance(&dest);
+                        if d1 < d2 {
+                            reflect = Some(p1.into());
+                        } else {
+                            reflect = Some(p2.into());
+                    }
+                    reflect_pos.insert(source, reflect.unwrap());
+                    }
+                }
+            } else {
+                // if the object has no source, it's generated and the spawn position is already generated
+                // so we only consider chain spawns here
+                if let Some((chainx, chainy)) = chain_spawn.get(&id) {
+                    (spawn_x, spawn_y) = (*chainx, *chainy)
+                }
             }
 
-            // is it a chord?
+            // ========================== finishing up ==========================
+
             let chord = {
-                let chord_last = if id == 0 {
-                    false
-                } else {
-                    let last_object = self.objects.get(id as usize - 1).unwrap();
-                    (last_object.arrive_time() - arrive_time).abs() < 1e-10
-                };
-                let chord_next = 
-                if let Some(next_object) = self.objects.get(id as usize + 1) {
-                    (next_object.arrive_time() - arrive_time).abs() < 1e-10
+                let lastid = self.last_object_id(id);
+                let nextid = self.next_object_id(id);
+                let lastchord = if let Some(lastid) = lastid {
+                    let lastobject = self.objects.get(lastid as usize).unwrap();
+                    (lastobject.arrive_time() - arrive_time).abs() < 1e-12
                 } else {
                     false
                 };
-                chord_last || chord_next
+                let nextchord = if let Some(nextid) = nextid {
+                    let nextobject = self.objects.get(nextid as usize).unwrap();
+                    (nextobject.arrive_time() - arrive_time).abs() < 1e-12
+                } else {
+                    false
+                };
+                lastchord || nextchord
             };
 
-            objects.push(Object::new(
-                spawn_time, arrive_time, 
-                spawn_x, 
-                object.object_type,
-                pos, duration,
-                chord,
-            ));
-
-            // add occupation event for itself, chain and VO events are already added
-            match object.object_type {
-                x if x == Objecttype::Normal || x == Objecttype::Vertical => {
-                    occupied[pos as usize] += 1;
-                    occupy_events.push(
-                        (arrive_time + occupy_duration + duration.unwrap_or(0.), pos, -1)
-                    );
-                },
-                _ => {},
+            // to make rendering LO easier
+            if reflect.is_none() {
+                reflect = Some((spawn_x, spawn_y));
             }
+            
+            let result = Object::new(
+                spawn_time, arrive_time,
+                side as u32,
+                spawn_x, spawn_y,
+                objtype,
+                pos,
+                reflect,
+                duration,
+                chord,
+            );
+            objects.push(result);
 
-            // chains for rendering
-            if let Some(prev) = chain_prev.get(&id) {
-                chains.push(Chain{
-                    head: objects[*prev as usize],
-                    tail: objects[id as usize],
-                });
+            // chains for rendering, does not render blue side
+            if side == 0 {
+                if let Some(prev) = chain_prev.get(&id) {
+                    // object is copied here since it derives Copy trait
+                    chains.push(Chain{
+                        head: objects[*prev as usize],
+                        tail: objects[id as usize],
+                    });
+                }
             }
 
             // chain info for future objects
             if let Some(next) = object.chained {
                 chain_pos.insert(next, pos);
                 chain_prev.insert(next, id);
-                chain_spawn.insert(next, spawn_x);
+                chain_spawn.insert(next, (spawn_x, spawn_y));
                 // chains occupy the same position
                 if object.object_type != Objecttype::Top {
-                    occupied[pos as usize] += 1;
+                    occupied[side][pos as usize] += 1;
                     let nobject = &self.objects[next as usize];
                     let ntime = nobject.arrive_time();
-                    occupy_events.push(
-                        (ntime + occupy_duration, pos, -1)
+                    occupy_events[side].push(
+                        (ntime + 1e-12, pos, -1)
+                    );
+                }
+            }
+
+            // occupy events for LO
+            if objtype == Objecttype::Normal ||
+               objtype == Objecttype::Vertical {
+                if let Some(duration) = duration {
+                    occupied[side][pos as usize] += 1;
+                    occupy_events[side].push(
+                        (arrive_time + duration + occupy_duration + 1e-12, pos, -1)
                     );
                 }
             }
