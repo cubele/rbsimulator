@@ -37,7 +37,7 @@ fn main() {
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
     let testfumen = FumenDescription::from_json(
-        "ここからよろしく大作戦143", "あさき隊", "黑猫"
+        "orbital", "あさき隊", "黑猫"
     ).unwrap()
     .into_fumen(&asset_server);
     commands.insert_resource(testfumen);

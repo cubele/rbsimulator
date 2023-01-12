@@ -14,7 +14,7 @@ TODO: packaged version
 - [x] chain objects
 - [ ] just reflecs
 - [x] VO
-- [ ] SO
+- [x] SO
 - [x] LO
 - [x] chords
 - [x] precise RB physics(?)

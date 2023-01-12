@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use crate::objects::Object;
 use crate::chains::Chain;
+use crate::slider::Slider;
 
 pub struct FumenMetadata {
     /// song name
@@ -17,9 +18,11 @@ pub struct FumenMetadata {
 pub struct Fumen {
     pub metadata: FumenMetadata,
     pub objects: Vec<Object>,
-    pub chains: Vec<Chain>,
     pub current: usize,
+    pub chains: Vec<Chain>,
     pub currentchain: usize,
+    pub sliders: Vec<Slider>,
+    pub currentslider: usize,
     pub song_audio: Handle<AudioSource>,
     pub playing: bool,
     pub song_start_time: f64,
@@ -34,5 +37,9 @@ impl Fumen {
 
     pub fn current_chain(&self) -> Option<&Chain> {
         self.chains.get(self.currentchain as usize)
+    }
+
+    pub fn current_slider(&self) -> Option<&Slider> {
+        self.sliders.get(self.currentslider as usize)
     }
 }

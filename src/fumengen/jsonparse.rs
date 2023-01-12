@@ -68,6 +68,18 @@ pub struct JsonFumen {
     sopoints: Vec<Value>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SOPoint {
+    /// the note this point is attached to
+    pub noteid: u32,
+    /// the id inside this SO
+    pub id: u32,
+    #[serde(rename = "position")]
+    pub pos: u32,
+    pub starttime: f64,
+    pub flytime: f64,
+}
+
 const MS_PER_SEC: f64 = 1000.;
 impl FumenDescription {
     /// generatednotes: 非反射note数量
@@ -112,10 +124,6 @@ impl FumenDescription {
             let sametimereflects = get_val(object, "numalsoreflectednotes") as i32;
 
             let object_type = parse_objtype(objtype, istop, isset, position);
-
-            if object_type == Objecttype::Slide {
-                continue;
-            }
 
             let islong = objtype == 1;
             let duration = if islong {
@@ -164,6 +172,13 @@ impl FumenDescription {
             object.chained = object.chained.map(|id| *idtranslate.get(&id).unwrap() as u32);
             object.source = object.source.map(|id| *idtranslate.get(&id).unwrap() as u32);
         }
+
+        let mut sopoints = vec![];
+        for sopoint in content.sopoints {
+            let parsed: SOPoint = serde_json::from_value(sopoint)?;
+            sopoints.push(parsed);
+        }
+
         Ok(FumenDescription {
             name: name.to_string(),
             artist: artist.to_string(),
@@ -174,6 +189,7 @@ impl FumenDescription {
             bpm: vec![content.startbpm],
             delay: -0.22,
             objects,
+            sopoints,
         })
     }
 }

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use super::consts::*;
-use super::coords::Coord2d;
+use super::coords::Coord2d; 
 
 /// Keeps the textures and materials
 #[derive(Resource)]
@@ -15,6 +15,11 @@ pub struct ObjTexture {
     pub top_lo_end: Handle<Image>,
     pub vertical_obj: Handle<Image>,
     pub vertical_lo_start: Handle<Image>,
+    pub slide_up: Handle<Image>,
+    pub slide_right: Handle<Image>,
+    pub slide_left: Handle<Image>,
+    pub slide_mid: Handle<Image>,
+    pub slide_end: Handle<Image>,
     pub chain: Handle<Image>,
     pub glow: Handle<Image>,
 }
@@ -25,6 +30,13 @@ pub enum Objecttype {
     Vertical,
     Top,
     Slide,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum SlideDirection {
+    Up,
+    Right,
+    Left,
 }
 
 #[derive(Component, Clone, Copy, Debug)]
@@ -127,6 +139,7 @@ impl Object {
 
 use super::chains::*;
 use super::render::*;
+use super::slider::*;
 pub struct ObjectsPlugin;
 impl Plugin for ObjectsPlugin {
     fn build(&self, app: &mut App) {
@@ -135,6 +148,8 @@ impl Plugin for ObjectsPlugin {
             .add_system(spawn_objects)
             .add_system(move_objects)
             .add_system(spawn_chains)
-            .add_system(move_chains);
+            .add_system(move_chains)
+            .add_system(spawn_sliders)
+            .add_system(move_sliders);
     }
 }
