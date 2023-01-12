@@ -28,8 +28,6 @@ TODO: packaged version
 - [ ] latency and performance
 
 ## references
-[Be-Music Script Format](https://fileformats.fandom.com/wiki/Be-Music_Script)
-
 [Rhythm game in Rust using Bevy](https://caballerocoll.com/blog/bevy-rhythm-game/)
 
 [Creating a Snake Clone in Rust, with Bevy](https://mbuffett.com/posts/bevy-snake-tutorial/)
