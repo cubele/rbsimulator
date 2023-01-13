@@ -4,6 +4,7 @@ use super::jsonparse::SOPoint;
 
 #[derive(Debug, Clone)]
 pub struct ObjectDescription {
+    pub id: u32,
     /// spawn time in ms, will be parsed before using measure and beat
     pub starttime: f64,
     pub flytime: f64,

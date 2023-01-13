@@ -14,7 +14,7 @@ struct BGTexture {
 impl BGTexture {
     // github copilot is cool
     fn parse_frame (asset_server: &AssetServer) -> TextureAtlas {
-        let frame_image = asset_server.load("images\\frame_popn.png");
+        let frame_image = asset_server.load("images\\frame_iidx.png");
         let mut atlas = TextureAtlas::new_empty(frame_image, Vec2::new(512., 512.));
         // left tophalf
         atlas.add_texture(Rect::new(0., 0., 73., 511.));

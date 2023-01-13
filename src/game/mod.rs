@@ -8,3 +8,4 @@ pub mod chains;
 pub mod consts;
 pub mod render;
 pub mod slider;
+pub mod labels;

@@ -158,6 +158,7 @@ impl FumenDescription {
             };
 
             let objdesc = ObjectDescription {
+                id,
                 starttime: starttime as f64 / MS_PER_SEC,
                 flytime: flytime as f64 / MS_PER_SEC,
                 object_type, duration, pos,
@@ -165,8 +166,11 @@ impl FumenDescription {
                 chained, source, side,
             };
             objects.push(objdesc);
-            // since some objects may be omitted(Slides), we have to keep track of the actual id
-            idtranslate.insert(id as u32, objects.len() - 1);
+        }
+        objects.sort_by(|a, b| a.arrive_time().partial_cmp(&b.arrive_time()).unwrap());
+
+        for (i, obj) in objects.iter().enumerate() {
+            idtranslate.insert(obj.id, i);
         }
         for object in objects.iter_mut() {
             object.chained = object.chained.map(|id| *idtranslate.get(&id).unwrap() as u32);
@@ -175,7 +179,10 @@ impl FumenDescription {
 
         let mut sopoints = vec![];
         for sopoint in content.sopoints {
-            let parsed: SOPoint = serde_json::from_value(sopoint)?;
+            let mut parsed: SOPoint = serde_json::from_value(sopoint)?;
+            parsed.starttime /= MS_PER_SEC;
+            parsed.flytime /= MS_PER_SEC;
+            parsed.noteid = *idtranslate.get(&parsed.noteid).unwrap() as u32;
             sopoints.push(parsed);
         }
 

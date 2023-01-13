@@ -144,7 +144,7 @@ pub fn move_sliders(mut commands: Commands, time: Res<Time>,
                mut query: Query<(Entity, &mut Transform, &mut Sprite, &Children, &Slider), (Without<SliderNode>, Without<SliderSegment>)>,
                mut query_seg: Query<(&mut Transform, &mut Sprite), (Without<Children>, With<SliderSegment>, Without<SliderNode>)>,
                mut query_node: Query<(&mut Transform, &mut Visibility), (Without<Children>, Without<SliderSegment>, With<SliderNode>)>,
-               fumen: Res<Fumen>, audio: Res<Audio>, sfx: Res<SoundFX>) {
+               fumen: Res<Fumen>, audio: Res<Audio>, sfx: Res<SoundFX>, mut played: ResMut<SFXPlayed>) {
     let time_now = time.elapsed_seconds_f64() - fumen.song_start_time;
     let time_last = time_now - time.delta_seconds_f64();
     for (e,
@@ -154,10 +154,13 @@ pub fn move_sliders(mut commands: Commands, time: Res<Time>,
         slider) in query.iter_mut() {
         let end_time = slider.parts.last().unwrap().arrive_time;
         if time_now >= end_time {
-            audio.play_with_settings(
-                sfx.justsound.clone(),
-                PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
-            );
+            if !played.0 {
+                audio.play_with_settings(
+                    sfx.justsound.clone(),
+                    PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
+                );
+                played.0 = true;
+            }
             commands.entity(e).despawn_recursive();
             continue;
         }
@@ -169,11 +172,15 @@ pub fn move_sliders(mut commands: Commands, time: Res<Time>,
             (transform.translation.x, transform.translation.y) = headcoord.into();
         }
         if time_now >= head.arrive_time && time_last < head.arrive_time {
-            audio.play_with_settings(
-                sfx.justsound.clone(),
-                PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
-            );
+            if !played.0 {
+                audio.play_with_settings(
+                    sfx.justsound.clone(),
+                    PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
+                );
+                played.0 = true;
+            }
         }
+        // make the first object invisible
         if time_now > next.arrive_time {
             sprite.custom_size = Some(Vec2::new(0., 0.));
         }
@@ -233,10 +240,13 @@ pub fn move_sliders(mut commands: Commands, time: Res<Time>,
                 *vis = Visibility::VISIBLE;
             } else {
                 if time_last < end.arrive_time {
-                    audio.play_with_settings(
-                        sfx.justsound.clone(),
-                        PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
-                    );
+                    if !played.0 {
+                        audio.play_with_settings(
+                            sfx.justsound.clone(),
+                            PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
+                        );
+                        played.0 = true;
+                    }
                 }
                 let (mut transform, mut vis) = query_node.get_mut(children[id + segcount]).unwrap();
                 // next of p2

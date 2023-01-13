@@ -140,16 +140,26 @@ impl Object {
 use super::chains::*;
 use super::render::*;
 use super::slider::*;
+use super::labels::*;
 pub struct ObjectsPlugin;
 impl Plugin for ObjectsPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_startup_system(load_object_texture)
-            .add_system(spawn_objects)
-            .add_system(move_objects)
-            .add_system(spawn_chains)
-            .add_system(move_chains)
-            .add_system(spawn_sliders)
-            .add_system(move_sliders);
+            .add_system_set(
+                SystemSet::new()
+                    .label(RenderStage::SpawnObj)
+                    .with_system(spawn_objects)
+                    .with_system(spawn_chains)
+                    .with_system(spawn_sliders)
+            )
+            .add_system_set(
+                SystemSet::new()
+                    .label(RenderStage::MoveObj)
+                    .after(RenderStage::SpawnObj)
+                    .with_system(move_objects)
+                    .with_system(move_chains)
+                    .with_system(move_sliders)
+            );
     }
 }

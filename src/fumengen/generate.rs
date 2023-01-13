@@ -30,6 +30,10 @@ impl FumenDescription {
             object.starttime += delay;
         }
 
+        for sopoint in self.sopoints.iter_mut() {
+            sopoint.starttime += delay;
+        }
+
         let audio_path = format!("..\\fumens\\{}\\song.ogg", self.name);
         let song_audio = asset_server.load(audio_path);
         let bpm: f64 = self.bpm[0];
@@ -114,23 +118,27 @@ impl FumenDescription {
                 Objecttype::Normal => {
                     // avoid next VOs
                     let mut adj_occupied = [0; BOTTOM_SLOT_COUNT as usize];
-                    for pos in self.next_object_pos(id) {
-                        if let Some(pos) = pos {
-                            adj_occupied[pos as usize] += 1;
-                        }
-                    }
-                    // avoid previous objects
-                    for pos in self.last_object_pos(id, &generated_pos) {
-                        if let Some(pos) = pos {
-                            adj_occupied[pos as usize] += 1;
-                        }
-                    }
-                    pos = range_rng(0, BOTTOM_SLOT_COUNT - 1);
-                    if occupied[side].iter().zip(adj_occupied.iter()).position(|(x, y)| *x + *y == 0).is_none() {
-                        error!("No available slots for normal object, overlap@ time{:?}!", arrive_time);
+                    if let Some(spos) = object.pos {
+                        pos = spos;
                     } else {
-                        while occupied[side][pos as usize] + adj_occupied[pos as usize] > 0 {
-                            pos = range_rng(0, BOTTOM_SLOT_COUNT - 1);
+                        for pos in self.next_object_pos(id) {
+                            if let Some(pos) = pos {
+                                adj_occupied[pos as usize] += 1;
+                            }
+                        }
+                        // avoid previous objects
+                        for pos in self.last_object_pos(id, &generated_pos) {
+                            if let Some(pos) = pos {
+                                adj_occupied[pos as usize] += 1;
+                            }
+                        }
+                        pos = range_rng(0, BOTTOM_SLOT_COUNT - 1);
+                        if occupied[side].iter().zip(adj_occupied.iter()).position(|(x, y)| *x + *y == 0).is_none() {
+                            error!("No available slots for normal object, overlap@ time{:?}!", arrive_time);
+                        } else {
+                            while occupied[side][pos as usize] + adj_occupied[pos as usize] > 0 {
+                                pos = range_rng(0, BOTTOM_SLOT_COUNT - 1);
+                            }
                         }
                     }
                     spawn_x = range_rng(SPAWN_X_MIN, SPAWN_X_MAX);
@@ -223,6 +231,11 @@ impl FumenDescription {
             // handle chained positions last, overwrites previous results
             if let Some(chainedpos) = chain_pos.get(&id) {
                 pos = *chainedpos;
+            }
+
+            // handle set objects
+            if let Some(spos) = object.pos {
+                pos = spos;
             }
 
             generated_pos.push(pos);
@@ -370,8 +383,8 @@ impl FumenDescription {
             let mut points = vec![start];
             for point in attach.get(id).unwrap() {
                 let pos = point.pos;
-                let spawn_time = point.starttime / 1000.;
-                let arrive_time = spawn_time + point.flytime / 1000.;
+                let spawn_time = point.starttime;
+                let arrive_time = spawn_time + point.flytime;
                 let spawn = (BOTTOM_SLOT_START_X + BOTTOM_SLOT_SPACING * pos as f32, SPAWN_Y_POSITION).into();
                 let dest = Object::destination(
                     Objecttype::Slide,

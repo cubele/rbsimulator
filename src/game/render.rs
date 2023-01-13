@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use super::consts::*;
-use super::sfx::SoundFX;
+use super::sfx::*;
 use super::objects::*;
 
 pub fn load_object_texture(
@@ -159,12 +159,12 @@ pub fn move_objects(
     // middle part of LO, used to get the entity from child id
     mut query_lomid: Query<(Entity, &mut Sprite, &mut Transform), (With<LoMid>, Without<LoEnd>, Without<Object>)>,
     mut query_loend: Query<(Entity, &mut Sprite, &mut Transform), (With<LoEnd>, Without<LoMid>, Without<Object>)>,
-    audio: Res<Audio>, sfx: Res<SoundFX>, fumen: Res<Fumen>
+    audio: Res<Audio>, sfx: Res<SoundFX>, fumen: Res<Fumen>,
+    mut played: ResMut<SFXPlayed>
 ) {
     let time_now = time.elapsed_seconds_f64() - fumen.song_start_time;
     let time_last = time_now - time.delta_seconds_f64();
     // info!("delta time: {:?}", time.delta_seconds_f64());
-    let mut played = false;
     for (e,
         mut transform,
         object,
@@ -207,12 +207,12 @@ pub fn move_objects(
             }
             if time_last < object.arrive_time && time_now >= object.arrive_time {
                 // just arrived
-                if !played {
+                if !played.0 {
                     audio.play_with_settings(
                         sfx.justsound.clone(),
                         PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
                     );
-                    played = true;
+                    played.0 = true;
                 }
                 (transform.translation.x, transform.translation.y) = 
                     object.dest.into();
@@ -240,24 +240,24 @@ pub fn move_objects(
                 //transform.rotation = Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2 + angle);
             }
             if time_now >= object.arrive_time + duration {
-                if !played {
+                if !played.0 {
                     audio.play_with_settings(
                         sfx.justsound.clone(),
                         PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
                     );
-                    played = true;
+                    played.0 = true;
                 }
                 commands.entity(e).despawn_recursive();
             }
         } else {
             // passed the judgement line
             if time_now >= object.arrive_time {
-                if !played {
+                if !played.0 {
                     audio.play_with_settings(
                         sfx.justsound.clone(),
                         PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
                     );
-                    played = true;
+                    played.0 = true;
                 }
                 commands.entity(e).despawn_recursive();
             } else {
@@ -271,12 +271,12 @@ pub fn move_objects(
     for (e, mut transform, object) in query_single.iter_mut() {
         // passed the judgement line
         if time_now >= object.arrive_time {
-            if !played {
+            if !played.0 {
                 audio.play_with_settings(
                     sfx.justsound.clone(),
                     PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
                 );
-                played = true;
+                played.0 = true;
             }
             commands.entity(e).despawn_recursive();
         } else {
