@@ -20,7 +20,7 @@ pub fn seconds_from_beat(measure: u32, beat: f64, bpm: f64, delay: f64) -> f64 {
 const AVOID_WINDOW: f64 = 0.5;
 impl FumenDescription {
     /// Need to make sure the ObjectDescription vector is sorted by spawn time
-    pub fn into_fumen(&mut self, asset_server: &AssetServer) -> Fumen {
+    pub fn into_fumen(&mut self, songpath: &str, song_offset: f64, asset_server: &AssetServer) -> Fumen {
         // ensure objects are sorted by arrive time
         if !self.objects_valid() {
             panic!("Objects are not sorted by arrive time!");
@@ -34,8 +34,7 @@ impl FumenDescription {
             sopoint.starttime += delay;
         }
 
-        let audio_path = format!("..\\fumens\\{}\\song.ogg", self.name);
-        let song_audio = asset_server.load(audio_path);
+        let song_audio = asset_server.load(songpath);
         let bpm: f64 = self.bpm[0];
         let (minbpm, maxbpm) = {
             let mut minbpm = bpm;
@@ -421,6 +420,7 @@ impl FumenDescription {
             song_start_time: 0.0,
             seconds_per_measure: seconds_from_beat(1, 0.0, bpm, 0.0),
             delay,
+            song_offset,
         }
     }
 }

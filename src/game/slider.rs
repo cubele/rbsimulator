@@ -1,5 +1,6 @@
 use super::objects::*;
 use bevy::prelude::*;
+use bevy_kira_audio::prelude::{Audio};
 use crate::fumen::Fumen;
 use super::consts::*;
 use super::coords::*;
@@ -154,13 +155,7 @@ pub fn move_sliders(mut commands: Commands, time: Res<Time>,
         slider) in query.iter_mut() {
         let end_time = slider.parts.last().unwrap().arrive_time;
         if time_now >= end_time {
-            if !played.0 {
-                audio.play_with_settings(
-                    sfx.justsound.clone(),
-                    PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
-                );
-                played.0 = true;
-            }
+            played.try_play(&audio, &sfx.justsound);
             commands.entity(e).despawn_recursive();
             continue;
         }
@@ -172,13 +167,7 @@ pub fn move_sliders(mut commands: Commands, time: Res<Time>,
             (transform.translation.x, transform.translation.y) = headcoord.into();
         }
         if time_now >= head.arrive_time && time_last < head.arrive_time {
-            if !played.0 {
-                audio.play_with_settings(
-                    sfx.justsound.clone(),
-                    PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
-                );
-                played.0 = true;
-            }
+            played.try_play(&audio, &sfx.justsound);
         }
         // make the first object invisible
         if time_now > next.arrive_time {
@@ -240,13 +229,7 @@ pub fn move_sliders(mut commands: Commands, time: Res<Time>,
                 *vis = Visibility::VISIBLE;
             } else {
                 if time_last < end.arrive_time {
-                    if !played.0 {
-                        audio.play_with_settings(
-                            sfx.justsound.clone(),
-                            PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
-                        );
-                        played.0 = true;
-                    }
+                    played.try_play(&audio, &sfx.justsound);
                 }
                 let (mut transform, mut vis) = query_node.get_mut(children[id + segcount]).unwrap();
                 // next of p2

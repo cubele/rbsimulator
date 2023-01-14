@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_kira_audio::prelude::{AudioSource};
 use crate::objects::Object;
 use crate::chains::Chain;
 use crate::slider::Slider;
@@ -28,6 +29,7 @@ pub struct Fumen {
     pub song_start_time: f64,
     pub seconds_per_measure: f64,
     pub delay: f64,
+    pub song_offset: f64,
 }
 
 impl Fumen {

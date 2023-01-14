@@ -1,4 +1,6 @@
 use bevy::prelude::*;
+use bevy_kira_audio::prelude::{AudioSource, AudioControl, Audio};
+use crate::consts::*;
 
 #[derive(Resource)]
 pub struct SoundFX {
@@ -7,6 +9,17 @@ pub struct SoundFX {
 
 #[derive(Resource)]
 pub struct SFXPlayed(pub bool);
+
+impl SFXPlayed {
+    /// SFX is played once per game cycle
+    pub fn try_play(&mut self, audio: &Res<Audio>, sfx: &Handle<AudioSource>) {
+        if !self.0 {
+            audio.play(sfx.clone())
+            .with_volume(VOLUME_SFX.into());
+            self.0 = true;
+        }
+    }
+}
 
 fn setup_sfx(
     mut commands: Commands,

@@ -21,7 +21,6 @@ TODO: packaged version
 - [x] precise RB fumen generation(?)
 - [x] better UI
 - [x] PLY parser(PLY->JSON->fumen)
-- [ ] preview slider
 - [ ] menu/song selection
 - [ ] Fumen maker
 - [ ] be able to play
@@ -33,3 +32,6 @@ TODO: packaged version
 [Creating a Snake Clone in Rust, with Bevy](https://mbuffett.com/posts/bevy-snake-tutorial/)
 
 [Unofficial Bevy Cheat Book](https://bevy-cheatbook.github.io/)
+
+## credits
+Team SCHWARZSCHILD

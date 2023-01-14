@@ -1,4 +1,4 @@
-use bevy::prelude::{error};
+use bevy::prelude::error;
 use serde::{Serialize, Deserialize};
 use serde_json::Value;
 use super::parse::{FumenDescription, ObjectDescription};
@@ -55,17 +55,17 @@ fn get_val(object: &Value, name: &str) -> i64 {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JsonFumen {
-    header: u32,
-    r#type: u32,
-    startbpm: f64,
-    length: u32,
-    numnotes: u32,
-    numbpmchanges: u32,
-    numgeneratednotes: u32,
-    numsopoints: u32,
-    notes: Vec<Value>,
-    bpmchanges: Vec<Value>,
-    sopoints: Vec<Value>,
+    pub header: u32,
+    pub r#type: u32,
+    pub startbpm: f64,
+    pub length: u32,
+    pub numnotes: u32,
+    pub numbpmchanges: u32,
+    pub numgeneratednotes: u32,
+    pub numsopoints: u32,
+    pub notes: Vec<Value>,
+    pub bpmchanges: Vec<Value>,
+    pub sopoints: Vec<Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -94,10 +94,9 @@ impl FumenDescription {
     /// TODO: 啥是SIM？
     /// VO判断：没有isset，不是top并且position不是-1
     pub fn from_json(
-        name: &str, artist: &str, charter: &str
+        name: &str, artist: &str, charter: &str, delay: i32,
+        content: JsonFumen,
     ) -> Result<Self, ParseError> {
-        let json = fs::read_to_string(format!("fumens\\{}\\fumen.json", name))?;
-        let content: JsonFumen = serde_json::from_str(&json)?;
         let mut objects = vec![];
         let numnotes = content.numnotes;
         // id in json -> index in my object array
@@ -117,11 +116,11 @@ impl FumenDescription {
             let position: i32 = get_val(object, "position") as i32;
             let isset: u32 = get_val(object, "isset") as u32;
             let magic: u32 = get_val(object, "magicnumber") as u32;
-            let chainlast: i32 = get_val(object, "chainlastid") as i32;
+            let _chainlast: i32 = get_val(object, "chainlastid") as i32;
             let chainnext: i32 = get_val(object, "chainnextid") as i32;
-            let numreflectnotes = get_val(object, "numreflectnotes") as i32;
-            let reflectnotes = &object["reflectnotes"];
-            let sametimereflects = get_val(object, "numalsoreflectednotes") as i32;
+            let _numreflectnotes = get_val(object, "numreflectnotes") as i32;
+            let _reflectnotes = &object["reflectnotes"];
+            let _sametimereflects = get_val(object, "numalsoreflectednotes") as i32;
 
             let object_type = parse_objtype(objtype, istop, isset, position);
 
@@ -194,9 +193,15 @@ impl FumenDescription {
             difficulty: "Normal".to_string(),
             // TODO: change to range
             bpm: vec![content.startbpm],
-            delay: -0.22,
+            delay: delay as f64 / 1000.,
             objects,
             sopoints,
         })
+    }
+
+    pub fn from_json_file (name: &str, artist: &str, charter: &str, delay: i32, path: &str) -> Result<Self, ParseError> {
+        let json = fs::read_to_string(path)?;
+        let content: JsonFumen = serde_json::from_str(&json)?;
+        Self::from_json(name, artist, charter, delay, content)
     }
 }

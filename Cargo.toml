@@ -6,7 +6,22 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = {version = "0.9.1"}
+bevy = { version = "0.9.1", default-features = false, features = [
+  "animation",
+  "bevy_asset",
+  "bevy_gilrs",
+  "bevy_scene",
+  "bevy_winit",
+  "render",
+  "png",
+  "mp3",
+  "hdr",
+  "vorbis",
+  "x11",
+  "filesystem_watcher",
+] }
+bevy_kira_audio = { version = "0.13", features = ["mp3"] }
+clap = {version = "4.1.1", features = ["derive"]}
 rand = "0.8.5"
 serde = "1.0.152"
 serde_json = "1.0.91"

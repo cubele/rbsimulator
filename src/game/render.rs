@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_kira_audio::prelude::{Audio};
 use super::consts::*;
 use super::sfx::*;
 use super::objects::*;
@@ -207,13 +208,7 @@ pub fn move_objects(
             }
             if time_last < object.arrive_time && time_now >= object.arrive_time {
                 // just arrived
-                if !played.0 {
-                    audio.play_with_settings(
-                        sfx.justsound.clone(),
-                        PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
-                    );
-                    played.0 = true;
-                }
+                played.try_play(&audio, &sfx.justsound);
                 (transform.translation.x, transform.translation.y) = 
                     object.dest.into();
             }
@@ -240,25 +235,13 @@ pub fn move_objects(
                 //transform.rotation = Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2 + angle);
             }
             if time_now >= object.arrive_time + duration {
-                if !played.0 {
-                    audio.play_with_settings(
-                        sfx.justsound.clone(),
-                        PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
-                    );
-                    played.0 = true;
-                }
+                played.try_play(&audio, &sfx.justsound);
                 commands.entity(e).despawn_recursive();
             }
         } else {
             // passed the judgement line
             if time_now >= object.arrive_time {
-                if !played.0 {
-                    audio.play_with_settings(
-                        sfx.justsound.clone(),
-                        PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
-                    );
-                    played.0 = true;
-                }
+                played.try_play(&audio, &sfx.justsound);
                 commands.entity(e).despawn_recursive();
             } else {
                 (transform.translation.x, transform.translation.y) = 
@@ -271,13 +254,7 @@ pub fn move_objects(
     for (e, mut transform, object) in query_single.iter_mut() {
         // passed the judgement line
         if time_now >= object.arrive_time {
-            if !played.0 {
-                audio.play_with_settings(
-                    sfx.justsound.clone(),
-                    PlaybackSettings::ONCE.with_volume(VOLUME_SFX),
-                );
-                played.0 = true;
-            }
+            played.try_play(&audio, &sfx.justsound);
             commands.entity(e).despawn_recursive();
         } else {
             (transform.translation.x, transform.translation.y) = 
