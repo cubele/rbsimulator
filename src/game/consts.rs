@@ -96,4 +96,4 @@ pub const VOLUME_SFX: f32 = 0.20;
 
 pub const HIGH_SPEED: f32 = 2.;
 
-pub const LO_DISP_TIME_MAX: f64 = 0.2;
+pub const LO_DISP_Y_MAX: f32 = TOP_SLOT_Y;

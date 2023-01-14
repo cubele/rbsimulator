@@ -421,6 +421,7 @@ impl FumenDescription {
             seconds_per_measure: seconds_from_beat(1, 0.0, bpm, 0.0),
             delay,
             song_offset,
+            bpm,
         }
     }
 }

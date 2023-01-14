@@ -94,6 +94,16 @@ impl Object {
         }
     }
 
+    pub fn speed(&self) -> f32 {
+        if let Some(reflec) = self.reflect {
+            let d = reflec.distance(&self.spawn) + reflec.distance(&self.dest);
+            d / (self.arrive_time - self.spawn_time) as f32
+        } else {
+            let d = self.spawn.distance(&self.dest);
+            d / (self.arrive_time - self.spawn_time) as f32
+        }
+    }
+
     pub fn current_coord(&self, time: f64) -> Coord2d {
         if let Some(reflec) = self.reflect {
             let rtime = self.reflec_time();

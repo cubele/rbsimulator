@@ -172,7 +172,8 @@ pub fn move_objects(
         children) in query.iter_mut() {
         // render LO
         if let Some(duration) = object.duration {
-            let disp_duration = duration.min(LO_DISP_TIME_MAX);
+            let lo_time_max = ((LO_DISP_Y_MAX - JUDGE_LINE_POSITION) / object.speed()) as f64;
+            let disp_duration = duration.min(lo_time_max);
             // hasn't arrived
             if time_now < object.arrive_time {
                 (transform.translation.x, transform.translation.y) = 
@@ -182,7 +183,7 @@ pub fn move_objects(
                 if let Some(stage) = object.reflect_stage(time_now) {
                     // where LOs should start to extend
                     if stage > 0 {
-                        let time_end = (time_now - duration.min(LO_DISP_TIME_MAX))
+                        let time_end = (time_now - duration.min(lo_time_max))
                             .max(object.reflec_time());
                         if time_end < time_now {
                             let p1 = object.current_coord(time_now);

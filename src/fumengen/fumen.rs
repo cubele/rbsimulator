@@ -30,6 +30,7 @@ pub struct Fumen {
     pub seconds_per_measure: f64,
     pub delay: f64,
     pub song_offset: f64,
+    pub bpm: f64,
 }
 
 impl Fumen {
@@ -43,5 +44,10 @@ impl Fumen {
 
     pub fn current_slider(&self) -> Option<&Slider> {
         self.sliders.get(self.currentslider as usize)
+    }
+
+    /// bpm changes are not supported yet
+    pub fn current_bpm(&self, _time: f64) -> f64 {
+        self.bpm
     }
 }
