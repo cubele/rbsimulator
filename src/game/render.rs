@@ -10,11 +10,11 @@ pub fn load_object_texture(
 ) {
     commands.insert_resource(ObjTexture{
         red_obj: asset_server.load("images\\redobj.png"),
-        red_lo_start: asset_server.load("images\\redobj.png"),
+        red_lo_start: asset_server.load("images\\redlostart.png"),
         red_lo_mid: asset_server.load("images\\redlomiddle.png"),
         red_lo_end: asset_server.load("images\\redloend.png"),
         top_obj: asset_server.load("images\\topobj.png"),
-        top_lo_start: asset_server.load("images\\topobj.png"),
+        top_lo_start: asset_server.load("images\\toplostart.png"),
         top_lo_mid: asset_server.load("images\\toplomiddle.png"),
         top_lo_end: asset_server.load("images\\toploend.png"),
         vertical_obj: asset_server.load("images\\redvo.png"),
