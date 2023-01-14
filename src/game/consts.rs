@@ -1,4 +1,4 @@
-pub const WINDOW_HEIGHT: f32 = 1280.;
+pub const WINDOW_HEIGHT: f32 = 1080.;
 pub const WINDOW_WIDTH: f32 = 768.;
 /// where the game is played, frame included, the top is reserved for displaying chartinfo
 pub const INNER_WINDOW_PADDING_Y: f32 = (WINDOW_HEIGHT - 1024.) / 2.;

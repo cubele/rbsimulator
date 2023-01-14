@@ -293,8 +293,8 @@ fn setup_time_text(
             style: Style {
                 position_type: PositionType::Absolute,
                 position: UiRect {
-                    left: Val::Px(10.),
-                    top: Val::Px(10.),
+                    left: Val::Px(5.),
+                    top: Val::Px(5.),
                     ..default()
                 },
                 ..default()
@@ -339,8 +339,6 @@ impl Plugin for UIPlugin {
         app
             .add_startup_system(setup_ui)
             .add_startup_system(setup_time_text)
-            .add_startup_system(setup_info_text)
-            .add_system(update_time_text)
-            .add_system(update_info_text);
+            .add_system(update_time_text);
     }
 }
