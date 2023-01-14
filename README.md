@@ -7,7 +7,14 @@ Created using rust and [BEVY](https://bevyengine.org/)
 TODO: packaged version
 
 1. Install [Rust](https://www.rust-lang.org/tools/install)
-2. run `cargo run --release`
+2. run `cargo run --release [OPTIONS] <FUMENPATH> <SONGPATH>`
+```
+Options:
+  -d, --delay <DELAY>
+  -s, --start <STARTTIME>
+  -m, --meta <METAPATH>
+  -h, --help               Print help
+```
 
 ## TODO List
 - [x] basic game
