@@ -9,10 +9,16 @@ TODO: packaged version
 1. Install [Rust](https://www.rust-lang.org/tools/install)
 2. run `cargo run --release [OPTIONS] <FUMENPATH> <SONGPATH>`
 ```
+Usage: rbsimulator.exe [OPTIONS] <FUMENPATH> <SONGPATH>
+
+Arguments:
+  <FUMENPATH>  The path to the fumen file, supports ply and json
+  <SONGPATH>   The path to the song file, supports mp3 and ogg
+
 Options:
-  -d, --delay <DELAY>
-  -s, --start <STARTTIME>
-  -m, --meta <METAPATH>
+  -d, --delay <DELAY>      The delay in milliseconds between the start of the song and the start of the fumen
+  -s, --start <STARTTIME>  Make the song start at this time in miliseconds instead of the beginning
+  -m, --meta <METAPATH>    The path to the metadata file, not supported yet!
   -h, --help               Print help
 ```
 
