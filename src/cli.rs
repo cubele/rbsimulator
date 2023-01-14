@@ -2,9 +2,9 @@ use clap::Parser;
 
 #[derive(Parser, Debug)]
 pub struct Cli {
-    /// The path to the fumen file, supports ply and json
+    /// The relative path to the fumen file, supports ply and json
     pub fumenpath: std::path::PathBuf,
-    /// The path to the song file, supports mp3 and ogg
+    /// The relative path to the song file, supports mp3 and ogg
     pub songpath: std::path::PathBuf,
     /// The delay in milliseconds between the start of the song and the start of the fumen
     #[arg(short = 'd', long = "delay")]

@@ -4,16 +4,14 @@ Brand new Reflec Beat simulator.
 Created using rust and [BEVY](https://bevyengine.org/)
 
 ## How to run
-TODO: packaged version
-
 1. Install [Rust](https://www.rust-lang.org/tools/install)
-2. run `cargo run --release [OPTIONS] <FUMENPATH> <SONGPATH>`
+2. run `cargo run --release [OPTIONS] <FUMENPATH> <SONGPATH>` or download the binary and run `rbsimulator.exe [OPTIONS] <FUMENPATH> <SONGPATH>` *with relative path*
 ```
 Usage: rbsimulator.exe [OPTIONS] <FUMENPATH> <SONGPATH>
 
 Arguments:
-  <FUMENPATH>  The path to the fumen file, supports ply and json
-  <SONGPATH>   The path to the song file, supports mp3 and ogg
+  <FUMENPATH>  The relative path to the fumen file, supports ply and json
+  <SONGPATH>   The relative path to the song file, supports mp3 and ogg
 
 Options:
   -d, --delay <DELAY>      The delay in milliseconds between the start of the song and the start of the fumen
@@ -34,6 +32,7 @@ Options:
 - [x] precise RB fumen generation(?)
 - [x] better UI
 - [x] PLY parser(PLY->JSON->fumen)
+- [x] CLI interface
 - [ ] menu/song selection
 - [ ] Fumen maker
 - [ ] be able to play
