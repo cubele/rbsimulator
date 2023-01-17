@@ -38,12 +38,27 @@ impl Fumen {
         self.objects.get(self.current as usize)
     }
 
+    pub fn goto_next_object_with_same_side(&mut self, side: u32) {
+        self.current += 1;
+        while let Some(object) = self.current_object() {
+            if object.side == side {
+                self.current += 1;
+            } else {
+                break;
+            }
+        }
+    }
+
     pub fn current_chain(&self) -> Option<&Chain> {
         self.chains.get(self.currentchain as usize)
     }
 
     pub fn current_slider(&self) -> Option<&Slider> {
         self.sliders.get(self.currentslider as usize)
+    }
+
+    pub fn relative_time(&self, time: &Res<Time>) -> f64 {
+        time.elapsed_seconds_f64() - self.song_start_time
     }
 
     /// bpm changes are not supported yet

@@ -45,11 +45,13 @@ pub fn spawn_objects(
     materials: Res<ObjTexture>,
     time: Res<Time>,
 ) {
-    let time_now = time.elapsed_seconds_f64() - fumen.song_start_time;
+    let time_now = fumen.relative_time(&time);
+    // spawn all objects that are supposed to be spawned in this frame
     while let Some(object) = fumen.current_object() {
         if object.spawn_time < time_now {
             // sliders are rendered seperately
             if object.objtype != Objecttype::Slide {
+                // spawns the note itself
                 let transform = object.current_coord(time_now)
                                                 .into_transform(OBJECT_Z + fumen.current as f32 * OBJECT_Z_DIFF);
                 let islong = object.duration.is_some();
@@ -85,13 +87,13 @@ pub fn spawn_objects(
                 };
                 let mut e = commands.spawn(bundle);
                 // spawns LO child node
-                if object.duration.is_some() {
+                if islong {
                     let (midtexture, endtexture) = match object.objtype {
                         Objecttype::Top => (materials.top_lo_mid.clone(), materials.top_lo_end.clone()),
                         Objecttype::Vertical => (materials.red_lo_mid.clone(), materials.red_lo_end.clone()),
                         Objecttype::Normal => (materials.red_lo_mid.clone(), materials.red_lo_end.clone()),
                         Objecttype::Slide => {
-                            unimplemented!();
+                            unreachable!();
                         }
                     };
                     let transform_mid = Transform::from_xyz(0., 0., -0.5);
@@ -137,14 +139,7 @@ pub fn spawn_objects(
                 }
                 e.insert(*object);
             }
-            fumen.current += 1;
-            while let Some(object) = fumen.current_object() {
-                if object.side == 1 {
-                    fumen.current += 1;
-                } else {
-                    break;
-                }
-            }
+            fumen.goto_next_object_with_same_side(1);
         } else {
             break;
         }
@@ -154,7 +149,7 @@ pub fn spawn_objects(
 /// also plays sfx for lower latency
 pub fn move_objects(
     mut commands: Commands, time: Res<Time>,
-    // these shennanigans are to prevent intersection between queries
+    // these shenanigans are to prevent intersection between queries
     mut query_single: Query<(Entity, &mut Transform, &Object), Without<Children>>,
     mut query: Query<(Entity, &mut Transform, &Object, &Children)>,
     // middle part of LO, used to get the entity from child id
@@ -163,13 +158,14 @@ pub fn move_objects(
     audio: Res<Audio>, sfx: Res<SoundFX>, fumen: Res<Fumen>,
     mut played: ResMut<SFXPlayed>
 ) {
-    let time_now = time.elapsed_seconds_f64() - fumen.song_start_time;
+    let time_now = fumen.relative_time(&time);
     let time_last = time_now - time.delta_seconds_f64();
-    // info!("delta time: {:?}", time.delta_seconds_f64());
-    for (e,
+    for (
+        e,
         mut transform,
         object,
-        children) in query.iter_mut() {
+        children
+    ) in query.iter_mut() {
         // render LO
         if let Some(duration) = object.duration {
             let lo_time_max = ((LO_DISP_Y_MAX - JUDGE_LINE_POSITION) / object.speed()) as f64;
@@ -179,7 +175,7 @@ pub fn move_objects(
                 (transform.translation.x, transform.translation.y) = 
                     object.current_coord(time_now).into();
                 // long objects dosen't extend before reflect
-                // This should always be the case for now since normal objects also have reflec
+                // This if should always be the case for now since normal objects also have reflec
                 if let Some(stage) = object.reflect_stage(time_now) {
                     // where LOs should start to extend
                     if stage > 0 {
@@ -205,61 +201,57 @@ pub fn move_objects(
                             sprite.custom_size = Some(Vec2::new(OBJECT_SIZE, OBJECT_SIZE));
                         }
                     }
+                } else {
+                    unreachable!();
                 }
             }
+            // just arrived
             if time_last < object.arrive_time && time_now >= object.arrive_time {
-                // just arrived
                 played.try_play(&audio, &sfx.justsound);
-                (transform.translation.x, transform.translation.y) = 
-                    object.dest.into();
+                (transform.translation.x, transform.translation.y) = object.dest.into();
             }
+            // in the middle
             if time_now >= object.arrive_time && time_now < object.arrive_time + duration {
-                // in the middle
                 let p1 = object.dest;
                 let duration_rem = duration - (time_now - object.arrive_time);
                 let rem_percent = duration_rem / duration;
                 let p2 = object.current_coord(object.arrive_time - disp_duration * rem_percent);
 
-                //let angle = p1.angle(&p2);
                 let (mx, my) = ((p2 - p1) / 2.0).into();
                 let w = OBJECT_SIZE;
                 let h = p1.distance(&p2);
 
                 let (_, mut sprite, mut transform) = query_lomid.get_mut(children[0]).unwrap();
                 (transform.translation.x, transform.translation.y) = (mx, my);
-                //transform.rotation = Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2 + angle);
                 sprite.custom_size = Some(Vec2::new(w, h));
 
                 let (ex, ey) = (p2 - p1).into();
                 let (_, _, mut transform) = query_loend.get_mut(children[1]).unwrap();
                 (transform.translation.x, transform.translation.y) = (ex, ey);
-                //transform.rotation = Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2 + angle);
             }
+            // end of LO
             if time_now >= object.arrive_time + duration {
                 played.try_play(&audio, &sfx.justsound);
                 commands.entity(e).despawn_recursive();
             }
         } else {
-            // passed the judgement line
+            // normal object
             if time_now >= object.arrive_time {
                 played.try_play(&audio, &sfx.justsound);
                 commands.entity(e).despawn_recursive();
             } else {
-                (transform.translation.x, transform.translation.y) = 
-                    object.current_coord(time_now).into();
+                (transform.translation.x, transform.translation.y) = object.current_coord(time_now).into();
             }
         }
     }
 
     // no elegant way to do it unless change overall design
     for (e, mut transform, object) in query_single.iter_mut() {
-        // passed the judgement line
         if time_now >= object.arrive_time {
             played.try_play(&audio, &sfx.justsound);
             commands.entity(e).despawn_recursive();
         } else {
-            (transform.translation.x, transform.translation.y) = 
-                object.current_coord(time_now).into();
+            (transform.translation.x, transform.translation.y) = object.current_coord(time_now).into();
         }
     }
     // info!("size: {:?}", query.iter().len() + query_single.iter().len());

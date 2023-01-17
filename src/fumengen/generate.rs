@@ -25,11 +25,11 @@ impl FumenDescription {
         if !self.objects_valid() {
             panic!("Objects are not sorted by arrive time!");
         }
+
         let delay = self.delay;
         for object in self.objects.iter_mut()  {
             object.starttime += delay;
         }
-
         for sopoint in self.sopoints.iter_mut() {
             sopoint.starttime += delay;
         }
@@ -117,15 +117,16 @@ impl FumenDescription {
                 Objecttype::Normal => {
                     // avoid next VOs
                     let mut adj_occupied = [0; BOTTOM_SLOT_COUNT as usize];
+                    // set notes
                     if let Some(spos) = object.pos {
                         pos = spos;
                     } else {
+                        // avoid adjacent objects
                         for pos in self.next_object_pos(id) {
                             if let Some(pos) = pos {
                                 adj_occupied[pos as usize] += 1;
                             }
                         }
-                        // avoid previous objects
                         for pos in self.last_object_pos(id, &generated_pos) {
                             if let Some(pos) = pos {
                                 adj_occupied[pos as usize] += 1;
@@ -189,7 +190,7 @@ impl FumenDescription {
                     }
                     // sum of previous occupy and future VO occupy
                     if occupied[side].iter().zip(vo_occupied.iter()).position(|(x, y)| *x + *y == 0).is_none() {
-                        error!("No available slots for normal object, overlap@ time{:?}!", arrive_time);
+                        error!("No available slots for chained normal object, overlap@ time{:?}!", arrive_time);
                     } else {
                         while occupied[side][pos as usize] + vo_occupied[pos as usize] > 0 {
                             pos = range_rng(0, BOTTOM_SLOT_COUNT - 1);
@@ -218,7 +219,7 @@ impl FumenDescription {
                         }
                     }
                     if occupied[side].iter().zip(vo_occupied.iter()).position(|(x, y)| *x + *y == 0).is_none() {
-                        error!("No available slots for normal object, overlap@ time{:?}!", arrive_time);
+                        error!("No available slots for long object, overlap@ time{:?}!", arrive_time);
                     } else {
                         while occupied[side][pos as usize] + vo_occupied[pos as usize] > 0 {
                             pos = range_rng(0, BOTTOM_SLOT_COUNT - 1);
@@ -279,6 +280,7 @@ impl FumenDescription {
             // ========================== finishing up ==========================
 
             let chord = {
+                // last/next object of the same side
                 let lastid = self.last_object_id(id);
                 let nextid = self.next_object_id(id);
                 let lastchord = if let Some(lastid) = lastid {

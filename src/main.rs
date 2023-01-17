@@ -42,6 +42,7 @@ fn main() {
         .run();
 }
 
+/// CLI interface
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let args = cli::Cli::parse();
     info!("args: {:?}", args);

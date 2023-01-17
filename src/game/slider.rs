@@ -23,8 +23,6 @@ impl SlidePoint {
 }
 
 #[derive(Component, Clone, Debug)]
-/// The start of slider is rendered as a normal VO
-/// the rest is rendered here
 pub struct Slider {
     pub parts: Vec<SlidePoint>,
 }
@@ -47,7 +45,7 @@ pub fn spawn_sliders(
     materials: Res<ObjTexture>,
     time: Res<Time>,
 ) {
-    let time_now = time.elapsed_seconds_f64() - fumen.song_start_time;
+    let time_now = fumen.relative_time(&time);
     while let Some(slider) = fumen.current_slider() {
         if slider.spawn_time() < time_now {
             let head = slider.parts[0];
@@ -141,18 +139,23 @@ pub fn spawn_sliders(
     }
 }
 
-pub fn move_sliders(mut commands: Commands, time: Res<Time>,
-               mut query: Query<(Entity, &mut Transform, &mut Sprite, &Children, &Slider), (Without<SliderNode>, Without<SliderSegment>)>,
-               mut query_seg: Query<(&mut Transform, &mut Sprite), (Without<Children>, With<SliderSegment>, Without<SliderNode>)>,
-               mut query_node: Query<(&mut Transform, &mut Visibility), (Without<Children>, Without<SliderSegment>, With<SliderNode>)>,
-               fumen: Res<Fumen>, audio: Res<Audio>, sfx: Res<SoundFX>, mut played: ResMut<SFXPlayed>) {
-    let time_now = time.elapsed_seconds_f64() - fumen.song_start_time;
+pub fn move_sliders(
+    mut commands: Commands, time: Res<Time>,
+    // these shenanigans are to prevent intersection between queries
+    mut query: Query<(Entity, &mut Transform, &mut Sprite, &Children, &Slider), (Without<SliderNode>, Without<SliderSegment>)>,
+    mut query_seg: Query<(&mut Transform, &mut Sprite), (Without<Children>, With<SliderSegment>, Without<SliderNode>)>,
+    mut query_node: Query<(&mut Transform, &mut Visibility), (Without<Children>, Without<SliderSegment>, With<SliderNode>)>,
+    fumen: Res<Fumen>, audio: Res<Audio>, sfx: Res<SoundFX>, mut played: ResMut<SFXPlayed>
+) {
+    let time_now = fumen.relative_time(&time);
     let time_last = time_now - time.delta_seconds_f64();
-    for (e,
+    for (
+        e,
         mut transform,
         mut sprite,
         children,
-        slider) in query.iter_mut() {
+        slider
+    ) in query.iter_mut() {
         let end_time = slider.parts.last().unwrap().arrive_time;
         if time_now >= end_time {
             played.try_play(&audio, &sfx.justsound);

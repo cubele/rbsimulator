@@ -89,7 +89,8 @@ impl FumenDescription {
         next_pos
     }
 
-    // objects of the last time window and the chorded ones
+    /// objects of the last time window and the chorded ones
+    /// generated_pos are the position generated before
     pub fn last_object_pos(&self, id: u32, generated_pos: &Vec<u32>) -> Vec<Option<u32>> {
         let objectnow = self.objects.get(id as usize).unwrap();
         let arrive_time = objectnow.arrive_time();
